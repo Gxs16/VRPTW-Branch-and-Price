@@ -1,4 +1,4 @@
-package algo.constants;
+package main.constants;
 
 public enum Status {
 

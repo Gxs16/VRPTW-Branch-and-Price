@@ -1,4 +1,4 @@
-package algo;
+package main;
 
 /**
  * this is a linked tree list recording all the branching during Branch and Bound

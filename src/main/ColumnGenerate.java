@@ -1,4 +1,4 @@
-package algo;
+package main;
 
 /**
  * Asymmetric VRP with Resources Constraints (Time Windows and Capacity)
@@ -106,7 +106,7 @@ public class ColumnGenerate {
                 y.add(cplex.numVar(column, 0.0, Double.MAX_VALUE));
                 // creation of the variable y_i
             }
-            // complete the lp with basic Route to ensure feasibility
+            // complete the lp with basic Route.java to ensure feasibility
             if (routes.size() < userParam.nbclients) { // a priori true only the first time
                 addTrivialRoutes(userParam, routes, cplex, objfunc, lpmatrix, y);
             }
