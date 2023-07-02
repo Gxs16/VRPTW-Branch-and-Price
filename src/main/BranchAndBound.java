@@ -1,5 +1,8 @@
 package main;
 
+import main.constants.Status;
+import main.utils.LoggingUtil;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.logging.Logger;
@@ -79,12 +82,7 @@ public class BranchAndBound {
             else
                 logger.info("Edge from " + branching.branchFrom + " to "
                         + branching.branchTo + ": set");
-            int mb = 1024 * 1024;
-            Runtime runtime = Runtime.getRuntime();
-            logger.info("Java Memory=> Total:" + (runtime.totalMemory() / mb)
-                    + " Max:" + (runtime.maxMemory() / mb) + " Used:"
-                    + ((runtime.totalMemory() - runtime.freeMemory()) / mb) + " Free: "
-                    + runtime.freeMemory() / mb);
+            logger.info(LoggingUtil.generateRuntimeStatusLog());
 
             // Compute a solution for this node using Column generation
             ColumnGenerate CG = new ColumnGenerate();
@@ -93,10 +91,8 @@ public class BranchAndBound {
             // feasible ? Does a solution exist?
             if ((CGobj > 2 * userParam.maxlength) || (CGobj < -1e-6)) {
                 // can only be true when the routes in the solution include forbidden edges (can happen when the BB set branching values)
-                logger.info("RELAX INFEASIBLE | Lower bound: " + lowerBound
-                        + " | Upper bound: " + upperBound + " | Gap: "
-                        + ((upperBound - lowerBound) / upperBound) + " | BB Depth: "
-                        + depth + " | " + routes.size() + " routes");
+                logger.info(LoggingUtil.generateStatusLog(Status.RELAX_INFEASIBLE, lowerBound, upperBound, depth, CGobj, routes.size()));
+
                 return true; // stop this branch
             }
             branching.lowestValue = CGobj;
@@ -111,11 +107,8 @@ public class BranchAndBound {
                 lowerBound = CGobj;
 
             if (branching.lowestValue > upperBound) {
-                logger.info("CUT | Lower bound: " + lowerBound
-                        + " | Upper bound: " + upperBound + " | Gap: "
-                        + ((upperBound - lowerBound) / upperBound) + " | BB Depth: "
-                        + depth + " | Local CG cost: " + CGobj + " | " + routes.size()
-                        + " routes");
+                logger.info(LoggingUtil.generateStatusLog(Status.CUT, lowerBound, upperBound, depth, CGobj, routes.size()));
+
                 return true; // cut this useless branch
             } else {
                 // check the (integer) feasibility. Otherwise, search for a branching variable
@@ -176,24 +169,14 @@ public class BranchAndBound {
                                 bestRoutes.add(optim);
                             }
                         }
-                        logger.info("OPTIMAL | Lower bound: " + lowerBound
-                                + " | Upper bound: " + upperBound + " | Gap: "
-                                + ((upperBound - lowerBound) / upperBound) + " | BB Depth: "
-                                + depth + " | Local CG cost: " + CGobj + " | " + routes.size()
-                                + " routes");
-                    } else
-                        logger.info("FEASIBLE | Lower bound: " + lowerBound
-                                + " | Upper bound: " + upperBound + " | Gap: "
-                                + ((upperBound - lowerBound) / upperBound) + " | BB Depth: "
-                                + depth + " | Local CG cost: " + CGobj + " | " + routes.size()
-                                + " routes");
+                        logger.info(LoggingUtil.generateStatusLog(Status.OPTIMAL, lowerBound, upperBound, depth, CGobj, routes.size()));
+
+                    } else {
+                        logger.info(LoggingUtil.generateStatusLog(Status.FEASIBLE, lowerBound, upperBound, depth, CGobj, routes.size()));
+                    }
                     return true;
                 } else {
-                    logger.info("INTEGER INFEASIBLE | Lower bound: " + lowerBound
-                            + " | Upper bound: " + upperBound + " | Gap: "
-                            + ((upperBound - lowerBound) / upperBound) + " | BB Depth: "
-                            + depth + " | Local CG cost: " + CGobj + " | " + routes.size()
-                            + " routes");
+                    logger.info(LoggingUtil.generateStatusLog(Status.INTEGER_INFEASIBLE, lowerBound, upperBound, depth, CGobj, routes.size()));
                     // ///////////////////////////////////////////////////////////
                     // branching (diving strategy)
 

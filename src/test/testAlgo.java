@@ -3,6 +3,7 @@ package test;
 import main.BranchAndBound;
 import main.ParamsVRP;
 import main.Route;
+import main.utils.LoggingUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,13 +20,7 @@ public class testAlgo {
         ArrayList<Route> bestRoutes = new ArrayList<>();
 
         bp.node(instance, initRoutes, null, bestRoutes, 0);
-        double optCost = 0;
-        logger.info("solution >>>");
-        for (Route bestRoute : bestRoutes) {
-            logger.info(bestRoute.path.toString());
-            optCost += bestRoute.cost;
-        }
+        logger.info(LoggingUtil.generateSolutionLog(bestRoutes));
 
-        logger.info("best Cost = "+optCost);
     }
 }
