@@ -19,11 +19,14 @@ package main;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.logging.Logger;
 
 import ilog.concert.*;
 import ilog.cplex.*;
 
 public class ColumnGenerate {
+
+    private final Logger logger = Logger.getLogger(ColumnGenerate.class.getSimpleName());
 
     static class IloNumVarArray {
         // Creation of a new class similar to an ArrayList for CPLEX unknowns
@@ -134,7 +137,7 @@ public class ColumnGenerate {
                 // solve the current RMP
                 // ---------------------------------------------------------
                 if (!cplex.solve()) {
-                    System.out.println("CG: relaxation infeasible!");
+                    logger.info("CG: relaxation infeasible!");
                     return 1E10;
                 }
                 prevobj[(++previ) % 100] = cplex.getObjValue();
@@ -191,15 +194,13 @@ public class ColumnGenerate {
 
                         oncemore = true;
                     }
-                    System.out.print("\nCG Iter " + previ + " Current cost: "
+                    logger.info("CG Iter " + previ + " Current cost: "
                             + df.format(prevobj[previ % 100]) + " " + routes.size()
                             + " routes");
-                    System.out.flush();
+
                 }
                 //if (previ % 50 == 0)
             }
-
-            System.out.println();
 
             for (i = 0; i < y.getSize(); i++)
                 routes.get(i).setQ(cplex.getValue(y.getElement(i)));

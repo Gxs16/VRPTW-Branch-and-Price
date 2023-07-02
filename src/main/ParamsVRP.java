@@ -8,6 +8,7 @@ package main;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 
 public class ParamsVRP {
@@ -29,6 +30,8 @@ public class ParamsVRP {
     public double maxlength;
     public boolean serviceInTW;
     String[] citieslab;
+
+    private final Logger logger = Logger.getLogger(ParamsVRP.class.getSimpleName());
 
     public ParamsVRP() {
         gap = 0.00000000001;
@@ -152,7 +155,7 @@ public class ParamsVRP {
             // cost for the other edges are defined during column generation
 
         } catch (IOException e) {
-            System.err.println("Error: " + e);
+            logger.severe("Error: " + e);
         }
 
         wval = new double[nbclients + 2];

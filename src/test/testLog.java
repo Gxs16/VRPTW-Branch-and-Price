@@ -4,7 +4,7 @@ import java.util.logging.Logger;
 
 public class testLog {
     public static void main(String[] args) {
-        Logger logger = Logger.getLogger("testLog");
+        Logger logger = Logger.getLogger(testLog.class.getSimpleName());
         logger.info("Test info");
         logger.warning("Test warning");
         logger.severe("Test severe");

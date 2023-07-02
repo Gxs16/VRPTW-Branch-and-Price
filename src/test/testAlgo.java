@@ -6,8 +6,11 @@ import main.Route;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.logging.Logger;
 
 public class testAlgo {
+    private static final Logger logger = Logger.getLogger(testAlgo.class.getSimpleName());
+
     public static void main(String[] args) throws IOException {
         BranchAndBound bp = new BranchAndBound();
         ParamsVRP instance = new ParamsVRP();
@@ -17,13 +20,12 @@ public class testAlgo {
 
         bp.node(instance, initRoutes, null, bestRoutes, 0);
         double optCost = 0;
-        System.out.println();
-        System.out.println("solution >>>");
+        logger.info("solution >>>");
         for (Route bestRoute : bestRoutes) {
-            System.out.println(bestRoute.path);
+            logger.info(bestRoute.path.toString());
             optCost += bestRoute.cost;
         }
 
-        System.out.println("\nbest Cost = "+optCost);
+        logger.info("best Cost = "+optCost);
     }
 }

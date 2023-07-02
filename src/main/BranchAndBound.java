@@ -2,10 +2,12 @@ package main;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.logging.Logger;
 
 public class BranchAndBound {
-    double lowerBound;
-    double upperBound;
+    private double lowerBound;
+    private double upperBound;
+    private final Logger logger = Logger.getLogger(BranchAndBound.class.getSimpleName());
 
     public BranchAndBound() {
         lowerBound = -1E10;
@@ -72,14 +74,14 @@ public class BranchAndBound {
 
             // display some local info
             if (branching.branchValue < 1)
-                System.out.println("\nEdge from " + branching.branchFrom + " to "
+                logger.info("Edge from " + branching.branchFrom + " to "
                         + branching.branchTo + ": forbid");
             else
-                System.out.println("\nEdge from " + branching.branchFrom + " to "
+                logger.info("Edge from " + branching.branchFrom + " to "
                         + branching.branchTo + ": set");
             int mb = 1024 * 1024;
             Runtime runtime = Runtime.getRuntime();
-            System.out.print("Java Memory=> Total:" + (runtime.totalMemory() / mb)
+            logger.info("Java Memory=> Total:" + (runtime.totalMemory() / mb)
                     + " Max:" + (runtime.maxMemory() / mb) + " Used:"
                     + ((runtime.totalMemory() - runtime.freeMemory()) / mb) + " Free: "
                     + runtime.freeMemory() / mb);
@@ -91,7 +93,7 @@ public class BranchAndBound {
             // feasible ? Does a solution exist?
             if ((CGobj > 2 * userParam.maxlength) || (CGobj < -1e-6)) {
                 // can only be true when the routes in the solution include forbidden edges (can happen when the BB set branching values)
-                System.out.println("RELAX INFEASIBLE | Lower bound: " + lowerBound
+                logger.info("RELAX INFEASIBLE | Lower bound: " + lowerBound
                         + " | Upper bound: " + upperBound + " | Gap: "
                         + ((upperBound - lowerBound) / upperBound) + " | BB Depth: "
                         + depth + " | " + routes.size() + " routes");
@@ -109,7 +111,7 @@ public class BranchAndBound {
                 lowerBound = CGobj;
 
             if (branching.lowestValue > upperBound) {
-                System.out.println("CUT | Lower bound: " + lowerBound
+                logger.info("CUT | Lower bound: " + lowerBound
                         + " | Upper bound: " + upperBound + " | Gap: "
                         + ((upperBound - lowerBound) / upperBound) + " | BB Depth: "
                         + depth + " | Local CG cost: " + CGobj + " | " + routes.size()
@@ -174,26 +176,24 @@ public class BranchAndBound {
                                 bestRoutes.add(optim);
                             }
                         }
-                        System.out.println("OPTIMAL | Lower bound: " + lowerBound
+                        logger.info("OPTIMAL | Lower bound: " + lowerBound
                                 + " | Upper bound: " + upperBound + " | Gap: "
                                 + ((upperBound - lowerBound) / upperBound) + " | BB Depth: "
                                 + depth + " | Local CG cost: " + CGobj + " | " + routes.size()
                                 + " routes");
-                        System.out.flush();
                     } else
-                        System.out.println("FEASIBLE | Lower bound: " + lowerBound
+                        logger.info("FEASIBLE | Lower bound: " + lowerBound
                                 + " | Upper bound: " + upperBound + " | Gap: "
                                 + ((upperBound - lowerBound) / upperBound) + " | BB Depth: "
                                 + depth + " | Local CG cost: " + CGobj + " | " + routes.size()
                                 + " routes");
                     return true;
                 } else {
-                    System.out.println("INTEGER INFEASIBLE | Lower bound: " + lowerBound
+                    logger.info("INTEGER INFEASIBLE | Lower bound: " + lowerBound
                             + " | Upper bound: " + upperBound + " | Gap: "
                             + ((upperBound - lowerBound) / upperBound) + " | BB Depth: "
                             + depth + " | Local CG cost: " + CGobj + " | " + routes.size()
                             + " routes");
-                    System.out.flush();
                     // ///////////////////////////////////////////////////////////
                     // branching (diving strategy)
 
@@ -241,7 +241,7 @@ public class BranchAndBound {
             }
 
         } catch (IOException e) {
-            System.err.println("Error: " + e);
+            logger.severe("Error: " + e);
         }
         return false;
     }
