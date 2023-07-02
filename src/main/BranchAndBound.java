@@ -22,28 +22,28 @@ public class BranchAndBound {
         if (branching.father != null) { // stop before root node
             if (branching.branchValue == 0) { // forbid this edge (in this direction)
                 // associate a very large distance to this edge to make it unattractive
-                userParam.dist[branching.branchFrom][branching.branchTo] = userParam.verybig;
+                userParam.distance[branching.branchFrom][branching.branchTo] = userParam.veryBigNumber;
             } else { // impose this edge (in this direction)
                 // associate a very large and unattractive distance to all edges
                 // starting from "branchFrom" excepted the one leading to "branchTo"
                 // and excepted when we start from depot (several vehicles)
                 if (branching.branchFrom != 0) {
                     for (i = 0; i < branching.branchTo; i++)
-                        userParam.dist[branching.branchFrom][i] = userParam.verybig;
-                    for (i++; i < userParam.nbclients + 2; i++)
-                        userParam.dist[branching.branchFrom][i] = userParam.verybig;
+                        userParam.distance[branching.branchFrom][i] = userParam.veryBigNumber;
+                    for (i++; i < userParam.clientsNum + 2; i++)
+                        userParam.distance[branching.branchFrom][i] = userParam.veryBigNumber;
                 }
                 // associate a very large and unattractive distance to all edges ending
                 // at "branchTo" excepted the one starting from "branchFrom"
                 // and excepted when the destination is the depot (several vehicles)
-                if (branching.branchTo != userParam.nbclients + 1) {
+                if (branching.branchTo != userParam.clientsNum + 1) {
                     for (i = 0; i < branching.branchFrom; i++)
-                        userParam.dist[i][branching.branchTo] = userParam.verybig;
-                    for (i++; i < userParam.nbclients + 2; i++)
-                        userParam.dist[i][branching.branchTo] = userParam.verybig;
+                        userParam.distance[i][branching.branchTo] = userParam.veryBigNumber;
+                    for (i++; i < userParam.clientsNum + 2; i++)
+                        userParam.distance[i][branching.branchTo] = userParam.veryBigNumber;
                 }
                 // forbid the edge in the opposite direction
-                userParam.dist[branching.branchTo][branching.branchFrom] = userParam.verybig;
+                userParam.distance[branching.branchTo][branching.branchFrom] = userParam.veryBigNumber;
             }
             if (recur)
                 EdgesBasedOnBranching(userParam, branching.father, true);
@@ -89,7 +89,7 @@ public class BranchAndBound {
 
             CGobj = CG.computeColGen(userParam, routes);
             // feasible ? Does a solution exist?
-            if ((CGobj > 2 * userParam.maxlength) || (CGobj < -1e-6)) {
+            if ((CGobj > 2 * userParam.maxLength) || (CGobj < -1e-6)) {
                 // can only be true when the routes in the solution include forbidden edges (can happen when the BB set branching values)
                 logger.info(LoggingUtil.generateStatusLog(Status.RELAX_INFEASIBLE, lowerBound, upperBound, depth, CGobj, routes.size()));
 
@@ -119,7 +119,7 @@ public class BranchAndBound {
                 bestVal = 0;
 
                 // transform the path variable (of the CG model) into edges variables
-                for (i = 0; i < userParam.nbclients + 2; i++)
+                for (i = 0; i < userParam.clientsNum + 2; i++)
                     java.util.Arrays.fill(userParam.edges[i], 0.0);
                 for (Route r : routes) {
                     if (r.getQ() > 1e-6) { // we consider only the routes in the current
@@ -135,8 +135,8 @@ public class BranchAndBound {
                 }
 
                 // find a fractional edge
-                for (i = 0; i < userParam.nbclients + 2; i++) {
-                    for (j = 0; j < userParam.nbclients + 2; j++) {
+                for (i = 0; i < userParam.clientsNum + 2; i++) {
+                    for (j = 0; j < userParam.clientsNum + 2; j++) {
                         coef = userParam.edges[i][j];
                         if ((coef > 1e-6)
                                 && ((coef < 0.9999999999) || (coef > 1.0000000001))) {
@@ -162,11 +162,11 @@ public class BranchAndBound {
                         bestRoutes.clear();
                         for (Route r : routes) {
                             if (r.getQ() > 1e-6) {
-                                Route optim = new Route();
-                                optim.setCost(r.getCost());
-                                optim.path = r.getPath();
-                                optim.setQ(r.getQ());
-                                bestRoutes.add(optim);
+                                Route optimum = new Route();
+                                optimum.setCost(r.getCost());
+                                optimum.path = r.getPath();
+                                optimum.setQ(r.getQ());
+                                bestRoutes.add(optimum);
                             }
                         }
                         logger.info(LoggingUtil.generateStatusLog(Status.OPTIMAL, lowerBound, upperBound, depth, CGobj, routes.size()));
@@ -206,9 +206,9 @@ public class BranchAndBound {
 
                     // branching on edges[bestEdge1][bestEdge2]=1
                     // second branching=>need to reinitialize the dist matrix
-                    for (i = 0; i < userParam.nbclients + 2; i++)
-                        System.arraycopy(userParam.distBase[i], 0, userParam.dist[i], 0,
-                                userParam.nbclients + 2);
+                    for (i = 0; i < userParam.clientsNum + 2; i++)
+                        System.arraycopy(userParam.distanceOriginal[i], 0, userParam.distance[i], 0,
+                                userParam.clientsNum + 2);
                     EdgesBasedOnBranching(userParam, newNode2, true);
                     // the initial lp for the CG contains all the routes of the previous
                     // solution less the routes incompatible with this arc
@@ -240,7 +240,7 @@ public class BranchAndBound {
                 int prevcity = 0;
                 for (int j = 1; accept && (j < path.size()); j++) {
                     int city = path.get(j);
-                    if (userParam.dist[prevcity][city] >= userParam.verybig - 1E-6)
+                    if (userParam.distance[prevcity][city] >= userParam.veryBigNumber - 1E-6)
                         accept = false;
                     prevcity = city;
                 }

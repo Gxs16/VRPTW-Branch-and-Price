@@ -13,9 +13,12 @@ public class testAlgo {
     private static final Logger logger = Logger.getLogger(testAlgo.class.getSimpleName());
 
     public static void main(String[] args) throws IOException {
+        String filePath = "dataset/R211.TXT";
+        logger.info("================================================");
+        logger.info("Start solving "+filePath);
         BranchAndBound bp = new BranchAndBound();
         ParamsVRP instance = new ParamsVRP();
-        instance.initParams("dataset/R211.TXT");
+        instance.initParams(filePath);
         ArrayList<Route> initRoutes = new ArrayList<>();
         ArrayList<Route> bestRoutes = new ArrayList<>();
 

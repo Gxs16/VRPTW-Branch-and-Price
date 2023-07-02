@@ -72,7 +72,7 @@ public class SPPRC {
                         return 1;
                     else {
                         int i=0;
-                        while (i<userParam.nbclients+2) {
+                        while (i<userParam.clientsNum +2) {
                             if (A.vertexVisited[i]!=B.vertexVisited[i]) {
                                 if (A.vertexVisited[i])
                                     return -1;
@@ -108,18 +108,18 @@ public class SPPRC {
         TreeSet<Integer> P = new TreeSet<>(new MyLabelComparator());   // unprocessed labels list
 
         // array of labels
-        labels = new ArrayList<>(2 * userParam.nbclients); // initial size at least larger than nb clients
-        boolean[] cust= new boolean[userParam.nbclients+2];
+        labels = new ArrayList<>(2 * userParam.clientsNum); // initial size at least larger than nb clients
+        boolean[] cust= new boolean[userParam.clientsNum +2];
         cust[0]=true;
-        for (i=1;i<userParam.nbclients+2;i++)
+        for (i=1; i<userParam.clientsNum +2; i++)
             cust[i]=false;
         labels.add(new label(0,-1,0.0,0,0,false,cust));	// first label: start from depot (client 0)
         U.add(0);
 
         // for each city, an array with the index of the corresponding labels (for dominance)
-        checkDom = new int[userParam.nbclients+2];
-        ArrayList<Integer>[] city2labels = new ArrayList[userParam.nbclients+2];
-        for (i=0;i<userParam.nbclients+2;i++) {
+        checkDom = new int[userParam.clientsNum +2];
+        ArrayList<Integer>[] city2labels = new ArrayList[userParam.clientsNum +2];
+        for (i=0; i<userParam.clientsNum +2; i++) {
             city2labels[i]= new ArrayList<>();
             checkDom[i]=0;  // index of the first label in city2labels that needs to be checked for dominance (last labels added)
         }
@@ -149,7 +149,7 @@ public class SPPRC {
                     la2 = labels.get(l2);
                     if (!(la1.dominated || la2.dominated)) {  // could happen since we clean 'city2labels' thanks to 'cleaning' only after the double loop
                         pathdom = true;
-                        for (int k = 1; pathdom && (k < userParam.nbclients+2); k++)
+                        for (int k = 1; pathdom && (k < userParam.clientsNum +2); k++)
                             pathdom=(!la1.vertexVisited[k] || la2.vertexVisited[k]);
                         if (pathdom && (la1.cost<=la2.cost) && (la1.ttime<=la2.ttime) && (la1.demand<=la2.demand)) {
                             labels.get(l2).dominated = true;
@@ -159,7 +159,7 @@ public class SPPRC {
                             //System.out.print(" ###Remove"+l2);
                         }
                         pathdom = true;
-                        for (int k = 1; pathdom && (k < userParam.nbclients + 2); k++)
+                        for (int k = 1; pathdom && (k < userParam.clientsNum + 2); k++)
                             pathdom = (!la2.vertexVisited[k] || la1.vertexVisited[k]);
 
                         if (pathdom && (la2.cost<=la1.cost) && (la2.ttime<=la1.ttime) && (la2.demand<=la1.demand)) {
@@ -182,7 +182,7 @@ public class SPPRC {
             // expand REF
             if (!current.dominated){
                 //System.out.println("Label "+current.city+" "+current.indexPrevLabel+" "+current.cost+" "+current.ttime+" "+current.dominated);
-                if (current.city == userParam.nbclients + 1) { // shortest path candidate to the depot!
+                if (current.city == userParam.clientsNum + 1) { // shortest path candidate to the depot!
                     if (current.cost<-1e-7)	{				// SP candidate for the column generation
                         P.add(currentidx);
                         nbsol=0;
@@ -193,10 +193,10 @@ public class SPPRC {
                         }
                     }
                 } else {  // if not the depot, we can consider extensions of the path
-                    for (i = 0; i < userParam.nbclients + 2; i++) {
-                        if ((!current.vertexVisited[i]) && (userParam.dist[current.city][i] < userParam.verybig-1e-6)) {  // don't go back to a vertex already visited or along a forbidden edge
+                    for (i = 0; i < userParam.clientsNum + 2; i++) {
+                        if ((!current.vertexVisited[i]) && (userParam.distance[current.city][i] < userParam.veryBigNumber -1e-6)) {  // don't go back to a vertex already visited or along a forbidden edge
                             // ttime
-                            tt = (float) (current.ttime + userParam.ttime[current.city][i] + userParam.s[current.city]);
+                            tt = (float) (current.ttime + userParam.travelTime[current.city][i] + userParam.s[current.city]);
                             if (tt < userParam.a[i])
                                 tt = userParam.a[i];
                             // demand
@@ -206,13 +206,13 @@ public class SPPRC {
                             // is feasible?
                             if ((tt <= userParam.b[i]) && (d <= userParam.capacity)) {
                                 idx = labels.size();
-                                boolean[] newcust = new boolean[userParam.nbclients + 2];
-                                System.arraycopy(current.vertexVisited, 0, newcust, 0, userParam.nbclients + 2);
+                                boolean[] newcust = new boolean[userParam.clientsNum + 2];
+                                System.arraycopy(current.vertexVisited, 0, newcust, 0, userParam.clientsNum + 2);
                                 newcust[i] = true;
                                 //speedup: third technique - Feillet 2004 as mentioned in Laporte's paper
-                                for (j=1;j<=userParam.nbclients;j++)
+                                for (j=1; j<=userParam.clientsNum; j++)
                                     if (!newcust[j]) {
-                                        tt2=(float) (tt+userParam.ttime[i][j]+userParam.s[i]);
+                                        tt2=(float) (tt+userParam.travelTime[i][j]+userParam.s[i]);
                                         d2=d+userParam.d[j];
                                         if ((tt2>userParam.b[j]) || (d2>userParam.capacity))
                                             newcust[j]=true;  // useless to visit this client
