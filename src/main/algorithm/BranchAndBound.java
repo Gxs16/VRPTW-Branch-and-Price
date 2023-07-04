@@ -1,12 +1,11 @@
 package main.algorithm;
 
+import main.constants.Status;
 import main.domain.Parameters;
 import main.domain.Route;
 import main.domain.TreeBB;
-import main.constants.Status;
 import main.utils.LoggingUtil;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
@@ -54,18 +53,14 @@ public class BranchAndBound {
     }
 
     /**
-     * @param userParam all the parameters provided by the users (cities, roads...)
-     * @param routes all (but we could decide to keep only a subset) the routes considered up to now (to initialize the Column generation process)
-     * @param branching BB branching context information for the current node to process (branching edge var, branching value, branching from...)
+     * @param userParam  all the parameters provided by the users (cities, roads...)
+     * @param routes     all (but we could decide to keep only a subset) the routes considered up to now (to initialize the Column generation process)
+     * @param branching  BB branching context information for the current node to process (branching edge var, branching value, branching from...)
      * @param bestRoutes best solution encountered
-     * @param depth depth of this node in TreeBB
+     * @param depth      depth of this node in TreeBB
      */
     public boolean node(Parameters userParam, ArrayList<Route> routes, TreeBB branching, ArrayList<Route> bestRoutes, int depth) throws Exception {
-        int bestEdge1, bestEdge2, prevcity, city, bestVal;
-        double coef, bestObj, change, CGobj;
-        boolean feasible;
-
-            // check first that we need to solve this node. Not the case if we have already found a solution within the gap precision
+        // check first that we need to solve this node. Not the case if we have already found a solution within the gap precision
         if ((upperBound - lowerBound) / upperBound < userParam.gap)
             return true;
 
@@ -77,17 +72,15 @@ public class BranchAndBound {
 
         // display some local info
         if (branching.branchValue < 1)
-            logger.info("Edge from " + branching.branchFrom + " to "
-                    + branching.branchTo + ": forbid");
+            logger.info("Edge from " + branching.branchFrom + " to " + branching.branchTo + ": forbid");
         else
-            logger.info("Edge from " + branching.branchFrom + " to "
-                    + branching.branchTo + ": set");
+            logger.info("Edge from " + branching.branchFrom + " to " + branching.branchTo + ": set");
         logger.info(LoggingUtil.generateRuntimeStatusLog());
 
         // Compute a solution for this node using Column generation
         ColumnGenerate CG = new ColumnGenerate();
 
-        CGobj = CG.computeColGen(userParam, routes);
+        double CGobj = CG.computeColGen(userParam, routes);
         // feasible ? Does a solution exist?
         if ((CGobj > 2 * userParam.maxLength) || (CGobj < -1e-6)) {
             // can only be true when the routes in the solution include forbidden edges (can happen when the BB set branching values)
@@ -98,8 +91,7 @@ public class BranchAndBound {
         branching.lowestValue = CGobj;
 
         // update the global lower bound when required
-        if ((branching.father != null) && (branching.father.son0 != null)
-                && branching.father.topLevel) {
+        if (branching.father != null && branching.father.son0 != null && branching.father.topLevel) {
             // all nodes above and on the left have been processed=> we can compute a new lower bound
             lowerBound = Math.min(branching.lowestValue, branching.father.son0.lowestValue);
             branching.topLevel = true;
@@ -112,11 +104,11 @@ public class BranchAndBound {
             return true; // cut this useless branch
         } else {
             // check the (integer) feasibility. Otherwise, search for a branching variable
-            feasible = true;
-            bestEdge1 = -1;
-            bestEdge2 = -1;
-            bestObj = -1.0;
-            bestVal = 0;
+            boolean feasible = true;
+            int bestEdge1 = -1;
+            int bestEdge2 = -1;
+            double bestObj = -1.0;
+            int bestVal = 0;
 
             // transform the path variable (of the CG model) into edges variables
             for (int i = 0; i < userParam.customerNum + 2; i++)
@@ -125,9 +117,9 @@ public class BranchAndBound {
                 if (r.getQ() > 1e-6) { // we consider only the routes in the current
                     // local solution
                     ArrayList<Integer> path = r.getPath(); // get back the sequence of cities (path for thisRoute)
-                    prevcity = 0;
+                    int prevcity = 0;
                     for (int i = 1; i < path.size(); i++) {
-                        city = path.get(i);
+                        int city = path.get(i);
                         userParam.edges[prevcity][city] += r.getQ(); // convert into edges
                         prevcity = city;
                     }
@@ -137,20 +129,20 @@ public class BranchAndBound {
             // find a fractional edge
             for (int i = 0; i < userParam.customerNum + 2; i++) {
                 for (int j = 0; j < userParam.customerNum + 2; j++) {
-                    coef = userParam.edges[i][j];
-                    if ((coef > 1e-6)
-                            && ((coef < 0.9999999999) || (coef > 1.0000000001))) {
+                    double coefficient = userParam.edges[i][j];
+                    if ((coefficient > 1e-6)
+                            && ((coefficient < 0.9999999999) || (coefficient > 1.0000000001))) {
                         // this Route.java has a fractional coefficient in the solution => should we branch on this one?
                         feasible = false;
                         // what if we impose this Route.java in the solution? Q=1
                         // keep the ref of the edge which should lead to the largest change
-                        change = Math.min(coef, Math.abs(1.0 - coef));
+                        double change = Math.min(coefficient, Math.abs(1.0 - coefficient));
                         change *= routes.get(i).getCost();
                         if (change > bestObj) {
                             bestEdge1 = i;
                             bestEdge2 = j;
                             bestObj = change;
-                            bestVal = (Math.abs(1.0 - coef) > coef) ? 0 : 1;
+                            bestVal = (Math.abs(1.0 - coefficient) > coefficient) ? 0 : 1;
                         }
                     }
                 }
@@ -201,7 +193,7 @@ public class BranchAndBound {
 
                 // second branch -> set edges[bestEdge1][bestEdge2]=1
                 // record the branching information in a tree list
-                TreeBB newNode2 = new TreeBB(branching, null, bestEdge1, bestEdge2, 1-bestVal, -1E10);
+                TreeBB newNode2 = new TreeBB(branching, null, bestEdge1, bestEdge2, 1 - bestVal, -1E10);
 
                 // branching on edges[bestEdge1][bestEdge2]=1
                 // second branching=>need to reinitialize the dist matrix

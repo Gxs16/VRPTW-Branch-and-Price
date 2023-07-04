@@ -6,7 +6,6 @@ import main.domain.Parameters;
 import main.domain.Route;
 import main.utils.LoggingUtil;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
