@@ -35,7 +35,7 @@ public class DataProcess {
                 if (max < parameters.distanceOriginal[i][j])
                     max = parameters.distanceOriginal[i][j];
             }
-            parameters.maxLength += max; // a Route.java with a length longer than this is not possible (we need it to check the feasibility of the Column Gen solution)
+            parameters.maxLength += max;
         }
         for (int i = 0; i < parameters.customerNum + 2; i++) {
             parameters.distanceOriginal[i][0] = parameters.veryBigNumber;
@@ -46,7 +46,7 @@ public class DataProcess {
             System.arraycopy(parameters.distanceOriginal[i], 0, parameters.distance[i], 0, parameters.customerNum + 2);
 
 
-        // ---- time
+        // time windows
         for (int i = 0; i < parameters.customerNum + 2; i++)
             for (int j = 0; j < parameters.customerNum + 2; j++)
                 parameters.travelTime[i][j] = parameters.distanceOriginal[i][j] / parameters.speed;
@@ -55,8 +55,8 @@ public class DataProcess {
             parameters.cost[0][j] = parameters.distance[0][j];
             parameters.cost[j][parameters.customerNum + 1] = parameters.distance[j][parameters.customerNum + 1];
         }
-        // cost for the other edges are defined during column generation
 
+        // cost for the other edges are defined during column generation
         parameters.edges = new double[parameters.customerNum + 2][parameters.customerNum + 2];
     }
 

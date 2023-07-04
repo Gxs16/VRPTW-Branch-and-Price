@@ -37,6 +37,9 @@ public class Parameters {
     public double veryBigNumber;
     public double speed;
     public double gap;
+    /**
+     * a Route.java with a length longer than this is not possible (we need it to check the feasibility of the Column Gen solution)
+     */
     public double maxLength;
     public boolean serviceInTW;
     public List<String> customerIndex = new ArrayList<>();

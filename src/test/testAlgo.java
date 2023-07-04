@@ -13,17 +13,19 @@ import java.util.logging.Logger;
 public class testAlgo {
     private static final Logger logger = Logger.getLogger(testAlgo.class.getSimpleName());
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
         String filePath = "dataset/R211.TXT";
         logger.info("================================================");
-        logger.info("Start solving "+filePath);
+        logger.info("Start solving " + filePath);
+        long startTime = System.currentTimeMillis();
         BranchAndBound bp = new BranchAndBound();
-        Parameters instance =  DataProcess.initParams(filePath);
+        Parameters instance = DataProcess.initParams(filePath);
         ArrayList<Route> initRoutes = new ArrayList<>();
         ArrayList<Route> bestRoutes = new ArrayList<>();
 
         bp.node(instance, initRoutes, null, bestRoutes, 0);
         logger.info(LoggingUtil.generateSolutionLog(bestRoutes));
-
+        long endTime = System.currentTimeMillis();
+        logger.info(String.format("Execution time: %s ms", (endTime-startTime)));
     }
 }
