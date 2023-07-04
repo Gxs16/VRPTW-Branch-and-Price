@@ -1,8 +1,8 @@
 package test;
 
-import main.BranchAndBound;
-import main.ParamsVRP;
-import main.Route;
+import main.algorithm.BranchAndBound;
+import main.domain.ParamsVRP;
+import main.domain.Route;
 import main.utils.LoggingUtil;
 
 import java.io.IOException;

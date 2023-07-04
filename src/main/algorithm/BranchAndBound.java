@@ -1,5 +1,8 @@
-package main;
+package main.algorithm;
 
+import main.domain.ParamsVRP;
+import main.domain.Route;
+import main.domain.TreeBB;
 import main.constants.Status;
 import main.utils.LoggingUtil;
 
@@ -188,8 +191,7 @@ public class BranchAndBound {
                     // branching on edges[bestEdge1][bestEdge2]=0
                     EdgesBasedOnBranching(userParam, newNode1, false);
 
-                    // the initial lp for the CG contains all the routes of the previous
-                    // solution less the routes containing this arc
+                    // the initial lp for the CG contains all the routes of the previous solution less the routes containing this arc
                     ArrayList<Route> nodeRoutes = filterRoutes(userParam, routes);
 
                     boolean ok;
@@ -210,8 +212,7 @@ public class BranchAndBound {
                         System.arraycopy(userParam.distanceOriginal[i], 0, userParam.distance[i], 0,
                                 userParam.clientsNum + 2);
                     EdgesBasedOnBranching(userParam, newNode2, true);
-                    // the initial lp for the CG contains all the routes of the previous
-                    // solution less the routes incompatible with this arc
+                    // the initial lp for the CG contains all the routes of the previous solution less the routes incompatible with this arc
                     ArrayList<Route> nodeRoutes2 = filterRoutes(userParam, routes);
                     ok = node(userParam, nodeRoutes2, newNode2, bestRoutes, depth + 1);
 
@@ -234,9 +235,7 @@ public class BranchAndBound {
         for (Route r : routes) {
             ArrayList<Integer> path = r.getPath();
             boolean accept = true;
-            if (path.size() > 3) { // we must keep trivial routes
-                // Depot-City-Depot in the set to ensure
-                // feasibility of the CG
+            if (path.size() > 3) { // we must keep trivial routes (Depot-City-Depot) in the set to ensure feasibility of the CG
                 int prevcity = 0;
                 for (int j = 1; accept && (j < path.size()); j++) {
                     int city = path.get(j);

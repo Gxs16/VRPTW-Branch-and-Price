@@ -1,4 +1,4 @@
-package main;
+package main.domain;
 
 
 import java.io.BufferedReader;
@@ -14,7 +14,7 @@ public class ParamsVRP {
     public int clientsNum;
     public int capacity;
     /**
-     * for the SPPRC sub problem
+     * for the ShortestPathWithRC sub problem
      */
     public double[][] cost;
     /**
@@ -22,7 +22,7 @@ public class ParamsVRP {
      */
     public double[][] distanceOriginal;
     /**
-     * distances that will be updated during the B&B before being used in the CG & SPPRC
+     * distances that will be updated during the B&B before being used in the CG & ShortestPathWithRC
      */
     public double[][] distance;
     public double[][] travelTime;

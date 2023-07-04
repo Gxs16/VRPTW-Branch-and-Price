@@ -1,6 +1,6 @@
 package main.utils;
 
-import main.Route;
+import main.domain.Route;
 import main.constants.Status;
 
 import java.util.ArrayList;

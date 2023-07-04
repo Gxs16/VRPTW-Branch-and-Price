@@ -1,36 +1,41 @@
-package main;
+package main.algorithm;
+
+
+import java.io.IOException;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
+
+import ilog.concert.*;
+import ilog.cplex.*;
+import main.algorithm.ShortestPath.ShortestPathWithRC;
+import main.domain.ParamsVRP;
+import main.domain.Route;
 
 /**
  * Asymmetric VRP with Resources Constraints (Time Windows and Capacity)
  * Branch and Price algorithm (Branch and Bound + Column generation)
  * For educational purpose only!  No code optimization.  Just to understand the main basic steps of the B&P algorithm.
- * Pricing through Dynamic Programming of the Short Path Problem with Resources Constraints (SPPRC)
+ * Pricing through Dynamic Programming of the Short Path Problem with Resources Constraints (ShortestPathWithRC)
  * Algorithm inspired by the book
  * Desrosiers, Desaulniers, Solomon, "Column Generation", Springer, 2005 (GERAD, 25th anniversary)
  * => Branch and bound (class BPACVRPTW)
  * => Column generation (class ColumnGenerate) : chapter 3
- * => Pricing SPPRC (class SPPRC): chapter 2
+ * => Pricing ShortestPathWithRC (class ShortestPathWithRC): chapter 2
  * CPLEX code for the column generation inspired by the example "CutStock.java" provided in the examples directory of the IBM ILOG CPLEX distribution
  *
  * @author mschyns
  * M.Schyns@ulg.ac.be
  */
-
-import java.io.IOException;
-import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.logging.Logger;
-
-import ilog.concert.*;
-import ilog.cplex.*;
-
 public class ColumnGenerate {
 
     private final Logger logger = Logger.getLogger(ColumnGenerate.class.getSimpleName());
 
+    /**
+     * Creation of a new class similar to an ArrayList for CPLEX unknowns
+     */
     static class IloNumVarArray {
-        // Creation of a new class similar to an ArrayList for CPLEX unknowns
-        // taken from "cutsotck.java"
         int _num = 0;
         IloNumVar[] _array = new IloNumVar[32];
 
@@ -119,8 +124,6 @@ public class ColumnGenerate {
             // CPlex params
             cplex.setParam(IloCplex.IntParam.RootAlgorithm, IloCplex.Algorithm.Primal);
             cplex.setOut(null);
-            // cplex.setParam(IloCplex.DoubleParam.TiLim,30); // max number of
-            // seconds: 2h=7200 24h=86400
 
             // ---------------------------------------------------------
             // column generation process
@@ -128,7 +131,6 @@ public class ColumnGenerate {
             DecimalFormat df = new DecimalFormat("#0000.00");
             oncemore = true;
             double[] prevobj = new double[100];
-            int nbroute;
             int previ = -1;
             while (oncemore) {
 
@@ -148,17 +150,15 @@ public class ColumnGenerate {
                 // ---------------------------------------------------------
                 // solve the sub problem to find new columns (if any)
                 // ---------------------------------------------------------
-                // first define the new costs for the sub problem objective function (SPPRC)
+                // first define the new costs for the sub problem objective function (ShortestPathWithRC)
                 pi = cplex.getDuals(lpmatrix);
                 for (i = 1; i < userParam.clientsNum + 1; i++)
                     for (j = 0; j < userParam.clientsNum + 2; j++)
                         userParam.cost[i][j] = userParam.distance[i][j] - pi[i - 1];
 
                 // start dynamic programming
-                SPPRC sp = new SPPRC();
-                ArrayList<Route> routesSPPRC = new ArrayList<>();
+                ShortestPathWithRC sp = new ShortestPathWithRC(userParam);
 
-                nbroute = userParam.clientsNum; // arbitrarily limit to the 5 first
                 // shortest paths with negative cost
                 // if ((previ>100) &&
                 // (prevobj[(previ-3)%100]-prevobj[previ%100]<0.0003*Math.abs((prevobj[(previ-99)%100]-prevobj[previ%100]))))
@@ -167,8 +167,7 @@ public class ColumnGenerate {
                 // complete=true; // it the convergence is too slow, start a "complete"
                 // shortestpast
                 // }
-                sp.shortestPath(userParam, routesSPPRC, nbroute);
-                sp = null;
+                List<Route> routesSPPRC = sp.findShortestPath(userParam.clientsNum);
 
                 // /////////////////////////////
                 // parameter here
@@ -187,19 +186,15 @@ public class ColumnGenerate {
                         }
                         cost += userParam.distance[prevcity][userParam.clientsNum + 1];
                         column = column.and(cplex.column(objfunc, cost));
-                        y.add(cplex.numVar(column, 0.0, Double.MAX_VALUE,
-                                "P" + routes.size())); // creation of the variable y_i
+                        y.add(cplex.numVar(column, 0.0, Double.MAX_VALUE, "P" + routes.size())); // creation of the variable y_i
                         r.setCost(cost);
                         routes.add(r);
 
                         oncemore = true;
                     }
-                    logger.info("CG Iter " + previ + " Current cost: "
-                            + df.format(prevobj[previ % 100]) + " " + routes.size()
-                            + " routes");
+                    logger.info("CG Iter " + previ + " Current cost: " + df.format(prevobj[previ % 100]) + " " + routes.size() + " routes");
 
                 }
-                //if (previ % 50 == 0)
             }
 
             for (i = 0; i < y.getSize(); i++)
@@ -209,15 +204,14 @@ public class ColumnGenerate {
             cplex.end();
             return obj;
         } catch (IloException e) {
-            System.err.println("Concert exception caught '" + e + "' caught");
+            logger.severe("Concert exception caught '" + e + "' caught");
         }
         return 1E10;
     }
 
     private static void addTrivialRoutes(ParamsVRP userParam, ArrayList<Route> routes, IloCplex cplex, IloObjective objfunc, IloRange[] lpmatrix, IloNumVarArray y) throws IloException {
         for (int i = 0; i < userParam.clientsNum; i++) {
-            double cost = userParam.distance[0][i + 1]
-                    + userParam.distance[i + 1][userParam.clientsNum + 1];
+            double cost = userParam.distance[0][i + 1] + userParam.distance[i + 1][userParam.clientsNum + 1];
             IloColumn column = cplex.column(objfunc, cost); // obj coefficient
             column = column.and(cplex.column(lpmatrix[i], 1.0)); // coefficient of y_i in (3.23) => 0 for the other y_p
             y.add(cplex.numVar(column, 0.0, Double.MAX_VALUE)); // creation of the variable y_i
