@@ -1,6 +1,6 @@
 package main.algorithm.ShortestPath;
 
-import main.domain.ParamsVRP;
+import main.domain.Parameters;
 import main.domain.Route;
 
 import java.util.ArrayList;
@@ -26,10 +26,10 @@ import java.util.TreeSet;
 //		before processing a Label at vertex i, we compare pairwise all Labels at the same vertex to remove the dominated ones
 
 public class ShortestPathWithRC {
-    ParamsVRP userParam;
+    Parameters userParam;
     ArrayList<Label> labels;
 
-    public ShortestPathWithRC(ParamsVRP userParam) {
+    public ShortestPathWithRC(Parameters userParam) {
         this.userParam = userParam;
     }
 
@@ -44,7 +44,7 @@ public class ShortestPathWithRC {
         ArrayList<Route> routes = new ArrayList<>();
         
         // array of Labels
-        this.labels = new ArrayList<>(2 * this.userParam.clientsNum); // initial size at least larger than nb clients
+        this.labels = new ArrayList<>(2 * this.userParam.customerNum); // initial size at least larger than nb clients
         // unprocessed Labels list => ordered TreeSet List (?optimal:  need to be sorted like this?)
         TreeSet<Integer> U = new TreeSet<>(new LabelComparator(this.userParam, this.labels));   // unprocessed Labels list
 
@@ -52,17 +52,17 @@ public class ShortestPathWithRC {
         TreeSet<Integer> P = new TreeSet<>(new LabelComparator(this.userParam, this.labels));   // unprocessed Labels list
 
 
-        boolean[] cust= new boolean[userParam.clientsNum +2];
+        boolean[] cust= new boolean[userParam.customerNum +2];
         cust[0]=true;
-        for (i=1; i<userParam.clientsNum +2; i++)
+        for (i=1; i<userParam.customerNum +2; i++)
             cust[i]=false;
         this.labels.add(new Label(0,-1,0.0,0,0,false,cust));	// first Label: start from depot (client 0)
         U.add(0);
 
         // for each city, an array with the index of the corresponding Labels (for dominance)
-        checkDom = new int[userParam.clientsNum +2];
-        ArrayList<Integer>[] city2labels = new ArrayList[userParam.clientsNum +2];
-        for (i=0; i<userParam.clientsNum +2; i++) {
+        checkDom = new int[userParam.customerNum +2];
+        ArrayList<Integer>[] city2labels = new ArrayList[userParam.customerNum +2];
+        for (i=0; i<userParam.customerNum +2; i++) {
             city2labels[i]= new ArrayList<>();
             checkDom[i]=0;  // index of the first Label in city2labels that needs to be checked for dominance (last Labels added)
         }
@@ -92,7 +92,7 @@ public class ShortestPathWithRC {
                     la2 = labels.get(l2);
                     if (!(la1.dominated || la2.dominated)) {  // could happen since we clean 'city2labels' thanks to 'cleaning' only after the double loop
                         pathdom = true;
-                        for (int k = 1; pathdom && (k < userParam.clientsNum +2); k++)
+                        for (int k = 1; pathdom && (k < userParam.customerNum +2); k++)
                             pathdom=(!la1.vertexVisited[k] || la2.vertexVisited[k]);
                         if (pathdom && (la1.cost<=la2.cost) && (la1.travelTime <=la2.travelTime) && (la1.demand<=la2.demand)) {
                             labels.get(l2).dominated = true;
@@ -102,7 +102,7 @@ public class ShortestPathWithRC {
                             //System.out.print(" ###Remove"+l2);
                         }
                         pathdom = true;
-                        for (int k = 1; pathdom && (k < userParam.clientsNum + 2); k++)
+                        for (int k = 1; pathdom && (k < userParam.customerNum + 2); k++)
                             pathdom = (!la2.vertexVisited[k] || la1.vertexVisited[k]);
 
                         if (pathdom && (la2.cost<=la1.cost) && (la2.travelTime <=la1.travelTime) && (la2.demand<=la1.demand)) {
@@ -124,7 +124,7 @@ public class ShortestPathWithRC {
             // expand REF
             if (!current.dominated){
                 //System.out.println("Label "+current.city+" "+current.indexPrevLabel+" "+current.cost+" "+current.ttime+" "+current.dominated);
-                if (current.city == userParam.clientsNum + 1) { // shortest path candidate to the depot!
+                if (current.city == userParam.customerNum + 1) { // shortest path candidate to the depot!
                     if (current.cost<-1e-7)	{				// SP candidate for the column generation
                         P.add(currentidx);
                         nbsol=0;
@@ -135,28 +135,28 @@ public class ShortestPathWithRC {
                         }
                     }
                 } else {  // if not the depot, we can consider extensions of the path
-                    for (i = 0; i < userParam.clientsNum + 2; i++) {
+                    for (i = 0; i < userParam.customerNum + 2; i++) {
                         if ((!current.vertexVisited[i]) && (userParam.distance[current.city][i] < userParam.veryBigNumber -1e-6)) {  // don't go back to a vertex already visited or along a forbidden edge
                             // ttime
-                            tt = (float) (current.travelTime + userParam.travelTime[current.city][i] + userParam.s[current.city]);
-                            if (tt < userParam.a[i])
-                                tt = userParam.a[i];
+                            tt = (float) (current.travelTime + userParam.travelTime[current.city][i] + userParam.serviceTime.get(current.city));
+                            if (tt < userParam.readyTime.get(i))
+                                tt = userParam.readyTime.get(i);
                             // demand
-                            d = current.demand + userParam.d[i];
+                            d = current.demand + userParam.demand.get(i);
                             //System.out.println("  -- "+i+" d:"+d+" t:"+tt);
 
                             // is feasible?
-                            if ((tt <= userParam.b[i]) && (d <= userParam.capacity)) {
+                            if ((tt <= userParam.dueTime.get(i)) && (d <= userParam.capacity)) {
                                 idx = labels.size();
-                                boolean[] newcust = new boolean[userParam.clientsNum + 2];
-                                System.arraycopy(current.vertexVisited, 0, newcust, 0, userParam.clientsNum + 2);
+                                boolean[] newcust = new boolean[userParam.customerNum + 2];
+                                System.arraycopy(current.vertexVisited, 0, newcust, 0, userParam.customerNum + 2);
                                 newcust[i] = true;
                                 //speedup: third technique - Feillet 2004 as mentioned in Laporte's paper
-                                for (j=1; j<=userParam.clientsNum; j++)
+                                for (j=1; j<=userParam.customerNum; j++)
                                     if (!newcust[j]) {
-                                        tt2=(float) (tt+userParam.travelTime[i][j]+userParam.s[i]);
-                                        d2=d+userParam.d[j];
-                                        if ((tt2>userParam.b[j]) || (d2>userParam.capacity))
+                                        tt2=(float) (tt+userParam.travelTime[i][j]+userParam.serviceTime.get(i));
+                                        d2=d+userParam.demand.get(j);
+                                        if ((tt2>userParam.dueTime.get(j)) || (d2>userParam.capacity))
                                             newcust[j]=true;  // useless to visit this client
                                     }
 

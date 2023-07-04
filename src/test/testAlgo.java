@@ -1,7 +1,8 @@
 package test;
 
+import main.DataProcess;
 import main.algorithm.BranchAndBound;
-import main.domain.ParamsVRP;
+import main.domain.Parameters;
 import main.domain.Route;
 import main.utils.LoggingUtil;
 
@@ -17,8 +18,7 @@ public class testAlgo {
         logger.info("================================================");
         logger.info("Start solving "+filePath);
         BranchAndBound bp = new BranchAndBound();
-        ParamsVRP instance = new ParamsVRP();
-        instance.initParams(filePath);
+        Parameters instance =  DataProcess.initParams(filePath);
         ArrayList<Route> initRoutes = new ArrayList<>();
         ArrayList<Route> bestRoutes = new ArrayList<>();
 

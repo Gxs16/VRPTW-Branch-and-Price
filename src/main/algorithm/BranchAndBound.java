@@ -1,6 +1,6 @@
 package main.algorithm;
 
-import main.domain.ParamsVRP;
+import main.domain.Parameters;
 import main.domain.Route;
 import main.domain.TreeBB;
 import main.constants.Status;
@@ -20,7 +20,7 @@ public class BranchAndBound {
         upperBound = 1E10;
     }
 
-    public void EdgesBasedOnBranching(ParamsVRP userParam, TreeBB branching, boolean recur) {
+    public void EdgesBasedOnBranching(Parameters userParam, TreeBB branching, boolean recur) {
         int i;
         if (branching.father != null) { // stop before root node
             if (branching.branchValue == 0) { // forbid this edge (in this direction)
@@ -33,16 +33,16 @@ public class BranchAndBound {
                 if (branching.branchFrom != 0) {
                     for (i = 0; i < branching.branchTo; i++)
                         userParam.distance[branching.branchFrom][i] = userParam.veryBigNumber;
-                    for (i++; i < userParam.clientsNum + 2; i++)
+                    for (i++; i < userParam.customerNum + 2; i++)
                         userParam.distance[branching.branchFrom][i] = userParam.veryBigNumber;
                 }
                 // associate a very large and unattractive distance to all edges ending
                 // at "branchTo" excepted the one starting from "branchFrom"
                 // and excepted when the destination is the depot (several vehicles)
-                if (branching.branchTo != userParam.clientsNum + 1) {
+                if (branching.branchTo != userParam.customerNum + 1) {
                     for (i = 0; i < branching.branchFrom; i++)
                         userParam.distance[i][branching.branchTo] = userParam.veryBigNumber;
-                    for (i++; i < userParam.clientsNum + 2; i++)
+                    for (i++; i < userParam.customerNum + 2; i++)
                         userParam.distance[i][branching.branchTo] = userParam.veryBigNumber;
                 }
                 // forbid the edge in the opposite direction
@@ -54,14 +54,13 @@ public class BranchAndBound {
     }
 
     /**
-     *
      * @param userParam all the parameters provided by the users (cities, roads...)
      * @param routes all (but we could decide to keep only a subset) the routes considered up to now (to initialize the Column generation process)
      * @param branching BB branching context information for the current node to process (branching edge var, branching value, branching from...)
      * @param bestRoutes best solution encountered
      * @param depth depth of this node in TreeBB
      */
-    public boolean node(ParamsVRP userParam, ArrayList<Route> routes, TreeBB branching, ArrayList<Route> bestRoutes, int depth) throws IOException {
+    public boolean node(Parameters userParam, ArrayList<Route> routes, TreeBB branching, ArrayList<Route> bestRoutes, int depth) throws IOException {
         int i, j, bestEdge1, bestEdge2, prevcity, city, bestVal;
         double coef, bestObj, change, CGobj;
         boolean feasible;
@@ -122,7 +121,7 @@ public class BranchAndBound {
                 bestVal = 0;
 
                 // transform the path variable (of the CG model) into edges variables
-                for (i = 0; i < userParam.clientsNum + 2; i++)
+                for (i = 0; i < userParam.customerNum + 2; i++)
                     java.util.Arrays.fill(userParam.edges[i], 0.0);
                 for (Route r : routes) {
                     if (r.getQ() > 1e-6) { // we consider only the routes in the current
@@ -138,8 +137,8 @@ public class BranchAndBound {
                 }
 
                 // find a fractional edge
-                for (i = 0; i < userParam.clientsNum + 2; i++) {
-                    for (j = 0; j < userParam.clientsNum + 2; j++) {
+                for (i = 0; i < userParam.customerNum + 2; i++) {
+                    for (j = 0; j < userParam.customerNum + 2; j++) {
                         coef = userParam.edges[i][j];
                         if ((coef > 1e-6)
                                 && ((coef < 0.9999999999) || (coef > 1.0000000001))) {
@@ -208,9 +207,9 @@ public class BranchAndBound {
 
                     // branching on edges[bestEdge1][bestEdge2]=1
                     // second branching=>need to reinitialize the dist matrix
-                    for (i = 0; i < userParam.clientsNum + 2; i++)
+                    for (i = 0; i < userParam.customerNum + 2; i++)
                         System.arraycopy(userParam.distanceOriginal[i], 0, userParam.distance[i], 0,
-                                userParam.clientsNum + 2);
+                                userParam.customerNum + 2);
                     EdgesBasedOnBranching(userParam, newNode2, true);
                     // the initial lp for the CG contains all the routes of the previous solution less the routes incompatible with this arc
                     ArrayList<Route> nodeRoutes2 = filterRoutes(userParam, routes);
@@ -230,7 +229,7 @@ public class BranchAndBound {
         return false;
     }
 
-    private static ArrayList<Route> filterRoutes(ParamsVRP userParam, ArrayList<Route> routes) {
+    private static ArrayList<Route> filterRoutes(Parameters userParam, ArrayList<Route> routes) {
         ArrayList<Route> nodeRoutes = new ArrayList<>();
         for (Route r : routes) {
             ArrayList<Integer> path = r.getPath();

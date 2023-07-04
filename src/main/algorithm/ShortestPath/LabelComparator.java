@@ -1,15 +1,15 @@
 package main.algorithm.ShortestPath;
 
-import main.domain.ParamsVRP;
+import main.domain.Parameters;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 
 public class LabelComparator implements Comparator<Integer> {
-    ParamsVRP userParam;
+    Parameters userParam;
     ArrayList<Label> labels;
 
-    public LabelComparator(ParamsVRP userParam, ArrayList<Label> labels) {
+    public LabelComparator(Parameters userParam, ArrayList<Label> labels) {
         this.userParam = userParam;
         this.labels = labels;
     }
@@ -37,7 +37,7 @@ public class LabelComparator implements Comparator<Integer> {
                     return 1;
                 else {
                     int i=0;
-                    while (i<userParam.clientsNum +2) {
+                    while (i<userParam.customerNum +2) {
                         if (A.vertexVisited[i]!=B.vertexVisited[i]) {
                             if (A.vertexVisited[i])
                                 return -1;
