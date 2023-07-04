@@ -34,9 +34,7 @@ public class Parameters {
     public List<Integer> readyTime = new ArrayList<>();
     public List<Integer> dueTime = new ArrayList<>();
     public List<Integer> serviceTime = new ArrayList<>();
-    public double veryBigNumber;
     public double speed;
-    public double gap;
     /**
      * a Route.java with a length longer than this is not possible (we need it to check the feasibility of the Column Gen solution)
      */
@@ -45,12 +43,10 @@ public class Parameters {
     public List<String> customerIndex = new ArrayList<>();
 
     public Parameters() {
-        gap = 0.00000000001;
-        serviceInTW = false;
+        this.serviceInTW = false;
         this.customerNum = 0;
-        speed = 1;
-        vehicleNum = 0;
-        veryBigNumber = 1E10;
+        this.speed = 1;
+        this.vehicleNum = 0;
     }
 
 }

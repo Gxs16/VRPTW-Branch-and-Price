@@ -1,6 +1,8 @@
 package main.algorithm;
 
+import main.constants.NumericalConstants;
 import main.constants.Status;
+import main.domain.Edge;
 import main.domain.Parameters;
 import main.domain.Route;
 import main.domain.TreeBB;
@@ -15,8 +17,8 @@ public class BranchAndBound {
     private final Logger logger = Logger.getLogger(BranchAndBound.class.getSimpleName());
 
     public BranchAndBound() {
-        lowerBound = -1E10;
-        upperBound = 1E10;
+        lowerBound = -NumericalConstants.veryBigNumber;
+        upperBound = NumericalConstants.veryBigNumber;
     }
 
     public void EdgesBasedOnBranching(Parameters userParam, TreeBB branching, boolean recur) {
@@ -24,28 +26,28 @@ public class BranchAndBound {
         if (branching.father != null) { // stop before root node
             if (branching.branchValue == 0) { // forbid this edge (in this direction)
                 // associate a very large distance to this edge to make it unattractive
-                userParam.distance[branching.branchFrom][branching.branchTo] = userParam.veryBigNumber;
+                userParam.distance[branching.branchFrom][branching.branchTo] = NumericalConstants.veryBigNumber;
             } else { // impose this edge (in this direction)
                 // associate a very large and unattractive distance to all edges
                 // starting from "branchFrom" excepted the one leading to "branchTo"
                 // and excepted when we start from depot (several vehicles)
                 if (branching.branchFrom != 0) {
                     for (i = 0; i < branching.branchTo; i++)
-                        userParam.distance[branching.branchFrom][i] = userParam.veryBigNumber;
+                        userParam.distance[branching.branchFrom][i] = NumericalConstants.veryBigNumber;
                     for (i++; i < userParam.customerNum + 2; i++)
-                        userParam.distance[branching.branchFrom][i] = userParam.veryBigNumber;
+                        userParam.distance[branching.branchFrom][i] = NumericalConstants.veryBigNumber;
                 }
                 // associate a very large and unattractive distance to all edges ending
                 // at "branchTo" excepted the one starting from "branchFrom"
                 // and excepted when the destination is the depot (several vehicles)
                 if (branching.branchTo != userParam.customerNum + 1) {
                     for (i = 0; i < branching.branchFrom; i++)
-                        userParam.distance[i][branching.branchTo] = userParam.veryBigNumber;
+                        userParam.distance[i][branching.branchTo] = NumericalConstants.veryBigNumber;
                     for (i++; i < userParam.customerNum + 2; i++)
-                        userParam.distance[i][branching.branchTo] = userParam.veryBigNumber;
+                        userParam.distance[i][branching.branchTo] = NumericalConstants.veryBigNumber;
                 }
                 // forbid the edge in the opposite direction
-                userParam.distance[branching.branchTo][branching.branchFrom] = userParam.veryBigNumber;
+                userParam.distance[branching.branchTo][branching.branchFrom] = NumericalConstants.veryBigNumber;
             }
             if (recur)
                 EdgesBasedOnBranching(userParam, branching.father, true);
@@ -61,7 +63,7 @@ public class BranchAndBound {
      */
     public boolean node(Parameters userParam, ArrayList<Route> routes, TreeBB branching, ArrayList<Route> bestRoutes, int depth) throws Exception {
         // check first that we need to solve this node. Not the case if we have already found a solution within the gap precision
-        if ((upperBound - lowerBound) / upperBound < userParam.gap)
+        if ((upperBound - lowerBound) / upperBound < NumericalConstants.gap)
             return true;
 
         // init
@@ -93,10 +95,10 @@ public class BranchAndBound {
         // update the global lower bound when required
         if (branching.father != null && branching.father.son0 != null && branching.father.topLevel) {
             // all nodes above and on the left have been processed=> we can compute a new lower bound
-            lowerBound = Math.min(branching.lowestValue, branching.father.son0.lowestValue);
+            this.lowerBound = Math.min(branching.lowestValue, branching.father.son0.lowestValue);
             branching.topLevel = true;
         } else if (branching.father == null) // root node
-            lowerBound = CGobj;
+            this.lowerBound = CGobj;
 
         if (branching.lowestValue > upperBound) {
             logger.info(LoggingUtil.generateStatusLog(Status.CUT, lowerBound, upperBound, depth, CGobj, routes.size()));
@@ -104,60 +106,35 @@ public class BranchAndBound {
             return true; // cut this useless branch
         } else {
             // check the (integer) feasibility. Otherwise, search for a branching variable
-            boolean feasible = true;
-            int bestEdge1 = -1;
-            int bestEdge2 = -1;
-            double bestObj = -1.0;
-            int bestVal = 0;
 
             // transform the path variable (of the CG model) into edges variables
-            for (int i = 0; i < userParam.customerNum + 2; i++)
-                java.util.Arrays.fill(userParam.edges[i], 0.0);
+            for (double[] edge : userParam.edges)
+                java.util.Arrays.fill(edge, 0.0);
             for (Route r : routes) {
-                if (r.getQ() > 1e-6) { // we consider only the routes in the current
+                if (r.getQuantity() > 1e-6) { // we consider only the routes in the current
                     // local solution
                     ArrayList<Integer> path = r.getPath(); // get back the sequence of cities (path for thisRoute)
                     int prevcity = 0;
                     for (int i = 1; i < path.size(); i++) {
                         int city = path.get(i);
-                        userParam.edges[prevcity][city] += r.getQ(); // convert into edges
+                        userParam.edges[prevcity][city] += r.getQuantity(); // convert into edges
                         prevcity = city;
                     }
                 }
             }
 
-            // find a fractional edge
-            for (int i = 0; i < userParam.customerNum + 2; i++) {
-                for (int j = 0; j < userParam.customerNum + 2; j++) {
-                    double coefficient = userParam.edges[i][j];
-                    if ((coefficient > 1e-6)
-                            && ((coefficient < 0.9999999999) || (coefficient > 1.0000000001))) {
-                        // this Route.java has a fractional coefficient in the solution => should we branch on this one?
-                        feasible = false;
-                        // what if we impose this Route.java in the solution? Q=1
-                        // keep the ref of the edge which should lead to the largest change
-                        double change = Math.min(coefficient, Math.abs(1.0 - coefficient));
-                        change *= routes.get(i).getCost();
-                        if (change > bestObj) {
-                            bestEdge1 = i;
-                            bestEdge2 = j;
-                            bestObj = change;
-                            bestVal = (Math.abs(1.0 - coefficient) > coefficient) ? 0 : 1;
-                        }
-                    }
-                }
-            }
+            Edge bestEdge = findBestFractionalEdge(userParam, routes);
 
-            if (feasible) {
+            if (bestEdge == null) {
                 if (branching.lowestValue < upperBound) { // new incumbent feasible solution!
                     upperBound = branching.lowestValue;
                     bestRoutes.clear();
                     for (Route r : routes) {
-                        if (r.getQ() > 1e-6) {
+                        if (r.getQuantity() > 1e-6) {
                             Route optimum = new Route();
                             optimum.setCost(r.getCost());
                             optimum.path = r.getPath();
-                            optimum.setQ(r.getQ());
+                            optimum.setQuantity(r.getQuantity());
                             bestRoutes.add(optimum);
                         }
                     }
@@ -169,12 +146,11 @@ public class BranchAndBound {
                 return true;
             } else {
                 logger.info(LoggingUtil.generateStatusLog(Status.INTEGER_INFEASIBLE, lowerBound, upperBound, depth, CGobj, routes.size()));
-                // ///////////////////////////////////////////////////////////
                 // branching (diving strategy)
 
                 // first branch -> set edges[bestEdge1][bestEdge2]=0
                 // record the branching information in a tree list
-                TreeBB newNode1 = new TreeBB(branching, null, bestEdge1, bestEdge2, bestVal, -1E10);
+                TreeBB newNode1 = new TreeBB(branching, null, bestEdge.from, bestEdge.to, bestEdge.branchingDirection, -NumericalConstants.veryBigNumber);
                 // first version was not with bestVal but with 0
 
                 // branching on edges[bestEdge1][bestEdge2]=0
@@ -193,7 +169,7 @@ public class BranchAndBound {
 
                 // second branch -> set edges[bestEdge1][bestEdge2]=1
                 // record the branching information in a tree list
-                TreeBB newNode2 = new TreeBB(branching, null, bestEdge1, bestEdge2, 1 - bestVal, -1E10);
+                TreeBB newNode2 = new TreeBB(branching, null, bestEdge.from, bestEdge.to, 1 - bestEdge.branchingDirection, -NumericalConstants.veryBigNumber);
 
                 // branching on edges[bestEdge1][bestEdge2]=1
                 // second branching=>need to reinitialize the dist matrix
@@ -223,7 +199,7 @@ public class BranchAndBound {
                 int prevcity = 0;
                 for (int j = 1; accept && (j < path.size()); j++) {
                     int city = path.get(j);
-                    if (userParam.distance[prevcity][city] >= userParam.veryBigNumber - 1E-6)
+                    if (userParam.distance[prevcity][city] >= NumericalConstants.veryBigNumber - 1E-6)
                         accept = false;
                     prevcity = city;
                 }
@@ -232,6 +208,28 @@ public class BranchAndBound {
                 nodeRoutes.add(r);
         }
         return nodeRoutes;
+    }
+
+    private static Edge findBestFractionalEdge(Parameters userParam, ArrayList<Route> routes) {
+        Edge res = null;
+        double bestObj = -1.0;
+        for (int i = 0; i < userParam.customerNum + 2; i++) {
+            for (int j = 0; j < userParam.customerNum + 2; j++) {
+                double coefficient = userParam.edges[i][j];
+                if ((coefficient > NumericalConstants.integerTolerance) && (coefficient < 1.0-NumericalConstants.integerTolerance || coefficient > 1.0+NumericalConstants.integerTolerance)) {
+                    // this Route.java has a fractional coefficient in the solution => should we branch on this one?
+                    // what if we impose this Route.java in the solution? Q=1
+                    // keep the ref of the edge which should lead to the largest change
+                    double change = Math.min(coefficient, Math.abs(1.0 - coefficient));
+                    change *= routes.get(i).getCost();
+                    if (change > bestObj) {
+                        res = new Edge(change, i, j, (Math.abs(1.0 - coefficient) > coefficient) ? 0 : 1);
+                        bestObj = change;
+                    }
+                }
+            }
+        }
+        return res;
     }
 
 }

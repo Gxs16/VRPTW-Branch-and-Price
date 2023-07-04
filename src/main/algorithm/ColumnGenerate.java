@@ -1,6 +1,8 @@
 package main.algorithm;
 
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -10,6 +12,7 @@ import java.util.logging.Logger;
 import ilog.concert.*;
 import ilog.cplex.*;
 import main.algorithm.ShortestPath.ShortestPathWithRC;
+import main.constants.NumericalConstants;
 import main.domain.Parameters;
 import main.domain.Route;
 
@@ -140,7 +143,7 @@ public class ColumnGenerate {
                 // ---------------------------------------------------------
                 if (!cplex.solve()) {
                     logger.info("CG: relaxation infeasible!");
-                    return 1E10;
+                    return NumericalConstants.veryBigNumber;
                 }
                 prevobj[(++previ) % 100] = cplex.getObjValue();
                 // store the 30 last obj values to check stability after wards
@@ -198,7 +201,7 @@ public class ColumnGenerate {
             }
 
             for (i = 0; i < y.getSize(); i++)
-                routes.get(i).setQ(cplex.getValue(y.getElement(i)));
+                routes.get(i).setQuantity(cplex.getValue(y.getElement(i)));
             obj = cplex.getObjValue(); //To be entirely safe, we should recompute the obj using the distBase matrix instead of the dist matrix
 
             cplex.end();
@@ -206,7 +209,7 @@ public class ColumnGenerate {
         } catch (IloException e) {
             logger.severe("Concert exception caught '" + e + "' caught");
         }
-        return 1E10;
+        return NumericalConstants.veryBigNumber;
     }
 
     private static void addTrivialRoutes(Parameters userParam, ArrayList<Route> routes, IloCplex cplex, IloObjective objfunc, IloRange[] lpmatrix, IloNumVarArray y) throws IloException {

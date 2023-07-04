@@ -3,8 +3,9 @@ package main.domain;
 import java.util.ArrayList;
 
 public class Route implements Cloneable {
-    public double cost, Q;
+    public double cost;
     // first resource: cost (e.g. distance or strict travel time)
+    public double quantity;
 
     public ArrayList<Integer> path;
 
@@ -36,12 +37,12 @@ public class Route implements Cloneable {
         return this.cost;
     }
 
-    public void setQ(double a) {
-        this.Q = a;
+    public void setQuantity(double a) {
+        this.quantity = a;
     }
 
-    public double getQ() {
-        return this.Q;
+    public double getQuantity() {
+        return this.quantity;
     }
 
     public ArrayList<Integer> getPath() {

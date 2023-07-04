@@ -1,5 +1,6 @@
 package main;
 
+import main.constants.NumericalConstants;
 import main.domain.Parameters;
 
 import java.io.BufferedReader;
@@ -38,9 +39,9 @@ public class DataProcess {
             parameters.maxLength += max;
         }
         for (int i = 0; i < parameters.customerNum + 2; i++) {
-            parameters.distanceOriginal[i][0] = parameters.veryBigNumber;
-            parameters.distanceOriginal[parameters.customerNum + 1][i] = parameters.veryBigNumber;
-            parameters.distanceOriginal[i][i] = parameters.veryBigNumber;
+            parameters.distanceOriginal[i][0] = NumericalConstants.veryBigNumber;
+            parameters.distanceOriginal[parameters.customerNum + 1][i] = NumericalConstants.veryBigNumber;
+            parameters.distanceOriginal[i][i] = NumericalConstants.veryBigNumber;
         }
         for (int i = 0; i < parameters.customerNum + 2; i++)
             System.arraycopy(parameters.distanceOriginal[i], 0, parameters.distance[i], 0, parameters.customerNum + 2);
