@@ -1,20 +1,17 @@
 package main.algorithm;
 
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Logger;
-
 import ilog.concert.*;
-import ilog.cplex.*;
+import ilog.cplex.IloCplex;
 import main.algorithm.ShortestPath.ShortestPathWithRC;
 import main.constants.NumericalConstants;
 import main.domain.Parameters;
 import main.domain.Route;
+
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Asymmetric VRP with Resources Constraints (Time Windows and Capacity)
@@ -60,7 +57,7 @@ public class ColumnGenerate {
         }
     }
 
-    public double computeColGen(Parameters userParam, ArrayList<Route> routes) throws IOException {
+    public double computeColGen(double[][] distance, Parameters userParam, ArrayList<Route> routes) {
         int i, j, prevcity, city;
         double cost, obj;
         double[] pi;
@@ -102,7 +99,7 @@ public class ColumnGenerate {
                 prevcity = 0;
                 for (i = 1; i < r.getPath().size(); i++) {
                     city = r.getPath().get(i);
-                    cost += userParam.distance[prevcity][city];
+                    cost += distance[prevcity][city];
                     prevcity = city;
                 }
 
@@ -119,7 +116,7 @@ public class ColumnGenerate {
             }
             // complete the lp with basic Route.java to ensure feasibility
             if (routes.size() < userParam.customerNum) { // a priori true only the first time
-                addTrivialRoutes(userParam, routes, cplex, objfunc, lpmatrix, y);
+                addTrivialRoutes(distance, userParam, routes, cplex, objfunc, lpmatrix, y);
             }
 
             // cplex.exportModel("model.lp");
@@ -157,10 +154,10 @@ public class ColumnGenerate {
                 pi = cplex.getDuals(lpmatrix);
                 for (i = 1; i < userParam.customerNum + 1; i++)
                     for (j = 0; j < userParam.customerNum + 2; j++)
-                        userParam.cost[i][j] = userParam.distance[i][j] - pi[i - 1];
+                        userParam.cost[i][j] = distance[i][j] - pi[i - 1];
 
                 // start dynamic programming
-                ShortestPathWithRC sp = new ShortestPathWithRC(userParam);
+                ShortestPathWithRC sp = new ShortestPathWithRC(userParam, distance);
 
                 // shortest paths with negative cost
                 // if ((previ>100) &&
@@ -178,16 +175,16 @@ public class ColumnGenerate {
                     for (Route r : routesSPPRC) {
                         ArrayList<Integer> rout = r.getPath();
                         prevcity = rout.get(1);
-                        cost = userParam.distance[0][prevcity];
+                        cost = distance[0][prevcity];
                         IloColumn column = cplex.column(lpmatrix[rout.get(1) - 1], 1.0);
                         for (i = 2; i < rout.size() - 1; i++) {
                             city = rout.get(i);
-                            cost += userParam.distance[prevcity][city];
+                            cost += distance[prevcity][city];
                             prevcity = city;
                             column = column.and(cplex.column(lpmatrix[rout.get(i) - 1], 1.0));
                             // coefficient of y_i in (3.23) => 0 for the other y_p
                         }
-                        cost += userParam.distance[prevcity][userParam.customerNum + 1];
+                        cost += distance[prevcity][userParam.customerNum + 1];
                         column = column.and(cplex.column(objfunc, cost));
                         y.add(cplex.numVar(column, 0.0, Double.MAX_VALUE, "P" + routes.size())); // creation of the variable y_i
                         r.setCost(cost);
@@ -212,9 +209,9 @@ public class ColumnGenerate {
         return NumericalConstants.veryBigNumber;
     }
 
-    private static void addTrivialRoutes(Parameters userParam, ArrayList<Route> routes, IloCplex cplex, IloObjective objfunc, IloRange[] lpmatrix, IloNumVarArray y) throws IloException {
+    private static void addTrivialRoutes(double[][] distance, Parameters userParam, ArrayList<Route> routes, IloCplex cplex, IloObjective objfunc, IloRange[] lpmatrix, IloNumVarArray y) throws IloException {
         for (int i = 0; i < userParam.customerNum; i++) {
-            double cost = userParam.distance[0][i + 1] + userParam.distance[i + 1][userParam.customerNum + 1];
+            double cost = distance[0][i + 1] + distance[i + 1][userParam.customerNum + 1];
             IloColumn column = cplex.column(objfunc, cost); // obj coefficient
             column = column.and(cplex.column(lpmatrix[i], 1.0)); // coefficient of y_i in (3.23) => 0 for the other y_p
             y.add(cplex.numVar(column, 0.0, Double.MAX_VALUE)); // creation of the variable y_i

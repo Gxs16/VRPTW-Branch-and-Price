@@ -21,36 +21,33 @@ public class BranchAndBound {
         upperBound = NumericalConstants.veryBigNumber;
     }
 
-    public void EdgesBasedOnBranching(Parameters userParam, TreeBB branching, boolean recur) {
-        int i;
+    public void EdgesBasedOnBranching(TreeBB branching) {
         if (branching.father != null) { // stop before root node
             if (branching.branchValue == 0) { // forbid this edge (in this direction)
                 // associate a very large distance to this edge to make it unattractive
-                userParam.distance[branching.branchFrom][branching.branchTo] = NumericalConstants.veryBigNumber;
+                branching.distance[branching.branchFrom][branching.branchTo] = NumericalConstants.veryBigNumber;
             } else { // impose this edge (in this direction)
                 // associate a very large and unattractive distance to all edges
                 // starting from "branchFrom" excepted the one leading to "branchTo"
                 // and excepted when we start from depot (several vehicles)
                 if (branching.branchFrom != 0) {
-                    for (i = 0; i < branching.branchTo; i++)
-                        userParam.distance[branching.branchFrom][i] = NumericalConstants.veryBigNumber;
-                    for (i++; i < userParam.customerNum + 2; i++)
-                        userParam.distance[branching.branchFrom][i] = NumericalConstants.veryBigNumber;
+                    for (int i = 0; i < branching.branchTo; i++)
+                        branching.distance[branching.branchFrom][i] = NumericalConstants.veryBigNumber;
+                    for (int i = branching.branchTo+1; i < branching.distance.length; i++)
+                        branching.distance[branching.branchFrom][i] = NumericalConstants.veryBigNumber;
                 }
                 // associate a very large and unattractive distance to all edges ending
                 // at "branchTo" excepted the one starting from "branchFrom"
                 // and excepted when the destination is the depot (several vehicles)
-                if (branching.branchTo != userParam.customerNum + 1) {
-                    for (i = 0; i < branching.branchFrom; i++)
-                        userParam.distance[i][branching.branchTo] = NumericalConstants.veryBigNumber;
-                    for (i++; i < userParam.customerNum + 2; i++)
-                        userParam.distance[i][branching.branchTo] = NumericalConstants.veryBigNumber;
+                if (branching.branchTo != branching.distance.length-1) {
+                    for (int i = 0; i < branching.branchFrom; i++)
+                        branching.distance[i][branching.branchTo] = NumericalConstants.veryBigNumber;
+                    for (int i = branching.branchFrom+1; i < branching.distance.length; i++)
+                        branching.distance[i][branching.branchTo] = NumericalConstants.veryBigNumber;
                 }
                 // forbid the edge in the opposite direction
-                userParam.distance[branching.branchTo][branching.branchFrom] = NumericalConstants.veryBigNumber;
+                branching.distance[branching.branchTo][branching.branchFrom] = NumericalConstants.veryBigNumber;
             }
-            if (recur)
-                EdgesBasedOnBranching(userParam, branching.father, true);
         }
     }
 
@@ -61,7 +58,7 @@ public class BranchAndBound {
      * @param bestRoutes best solution encountered
      * @param depth      depth of this node in TreeBB
      */
-    public boolean node(Parameters userParam, ArrayList<Route> routes, TreeBB branching, ArrayList<Route> bestRoutes, int depth) throws Exception {
+    public boolean node(Parameters userParam, ArrayList<Route> routes, TreeBB branching, ArrayList<Route> bestRoutes, int depth) {
         // check first that we need to solve this node. Not the case if we have already found a solution within the gap precision
         if ((upperBound - lowerBound) / upperBound < NumericalConstants.gap)
             return true;
@@ -69,7 +66,7 @@ public class BranchAndBound {
         // init
         if (branching == null) {
             // first call - root node
-            branching = new TreeBB(null, null, -1, -1, -1, true);
+            branching = new TreeBB(null, -1, -1, -1, true, userParam.distanceOriginal);
         }
 
         // display some local info
@@ -82,7 +79,7 @@ public class BranchAndBound {
         // Compute a solution for this node using Column generation
         ColumnGenerate CG = new ColumnGenerate();
 
-        double CGobj = CG.computeColGen(userParam, routes);
+        double CGobj = CG.computeColGen(branching.distance, userParam, routes);
         // feasible ? Does a solution exist?
         if ((CGobj > 2 * userParam.maxLength) || (CGobj < -1e-6)) {
             // can only be true when the routes in the solution include forbidden edges (can happen when the BB set branching values)
@@ -150,14 +147,14 @@ public class BranchAndBound {
 
                 // first branch -> set edges[bestEdge1][bestEdge2]=0
                 // record the branching information in a tree list
-                TreeBB newNode1 = new TreeBB(branching, null, bestEdge.from, bestEdge.to, bestEdge.branchingDirection, -NumericalConstants.veryBigNumber);
+                TreeBB newNode1 = new TreeBB(branching, bestEdge.from, bestEdge.to, bestEdge.branchingDirection, -NumericalConstants.veryBigNumber, branching.distance);
                 // first version was not with bestVal but with 0
 
                 // branching on edges[bestEdge1][bestEdge2]=0
-                EdgesBasedOnBranching(userParam, newNode1, false);
+                EdgesBasedOnBranching(newNode1);
 
                 // the initial lp for the CG contains all the routes of the previous solution less the routes containing this arc
-                ArrayList<Route> nodeRoutes = filterRoutes(userParam, routes);
+                ArrayList<Route> nodeRoutes = filterRoutes(newNode1, routes);
 
                 boolean ok;
                 ok = node(userParam, nodeRoutes, newNode1, bestRoutes, depth + 1);
@@ -169,16 +166,13 @@ public class BranchAndBound {
 
                 // second branch -> set edges[bestEdge1][bestEdge2]=1
                 // record the branching information in a tree list
-                TreeBB newNode2 = new TreeBB(branching, null, bestEdge.from, bestEdge.to, 1 - bestEdge.branchingDirection, -NumericalConstants.veryBigNumber);
+                TreeBB newNode2 = new TreeBB(branching, bestEdge.from, bestEdge.to, 1 - bestEdge.branchingDirection, -NumericalConstants.veryBigNumber, branching.distance);
 
                 // branching on edges[bestEdge1][bestEdge2]=1
                 // second branching=>need to reinitialize the dist matrix
-                for (int i = 0; i < userParam.customerNum + 2; i++)
-                    System.arraycopy(userParam.distanceOriginal[i], 0, userParam.distance[i], 0,
-                            userParam.customerNum + 2);
-                EdgesBasedOnBranching(userParam, newNode2, true);
+                EdgesBasedOnBranching(newNode2);
                 // the initial lp for the CG contains all the routes of the previous solution less the routes incompatible with this arc
-                ArrayList<Route> nodeRoutes2 = filterRoutes(userParam, routes);
+                ArrayList<Route> nodeRoutes2 = filterRoutes(newNode2, routes);
                 ok = node(userParam, nodeRoutes2, newNode2, bestRoutes, depth + 1);
 
                 // update the lowest feasible value of this node
@@ -190,7 +184,7 @@ public class BranchAndBound {
         }
     }
 
-    private static ArrayList<Route> filterRoutes(Parameters userParam, ArrayList<Route> routes) {
+    private static ArrayList<Route> filterRoutes(TreeBB branching, ArrayList<Route> routes) {
         ArrayList<Route> nodeRoutes = new ArrayList<>();
         for (Route r : routes) {
             ArrayList<Integer> path = r.getPath();
@@ -199,7 +193,7 @@ public class BranchAndBound {
                 int prevcity = 0;
                 for (int j = 1; accept && (j < path.size()); j++) {
                     int city = path.get(j);
-                    if (userParam.distance[prevcity][city] >= NumericalConstants.veryBigNumber - 1E-6)
+                    if (branching.distance[prevcity][city] >= NumericalConstants.veryBigNumber - 1E-6)
                         accept = false;
                     prevcity = city;
                 }

@@ -21,7 +21,6 @@ public class DataProcess {
     public static void calculateDistance(Parameters parameters) {
         parameters.distanceOriginal = new double[parameters.customerNum + 2][parameters.customerNum + 2];
         parameters.cost = new double[parameters.customerNum + 2][parameters.customerNum + 2];
-        parameters.distance = new double[parameters.customerNum + 2][parameters.customerNum + 2];
         parameters.travelTime = new double[parameters.customerNum + 2][parameters.customerNum + 2];
 
         double max;
@@ -43,8 +42,6 @@ public class DataProcess {
             parameters.distanceOriginal[parameters.customerNum + 1][i] = NumericalConstants.veryBigNumber;
             parameters.distanceOriginal[i][i] = NumericalConstants.veryBigNumber;
         }
-        for (int i = 0; i < parameters.customerNum + 2; i++)
-            System.arraycopy(parameters.distanceOriginal[i], 0, parameters.distance[i], 0, parameters.customerNum + 2);
 
 
         // time windows
@@ -53,8 +50,8 @@ public class DataProcess {
                 parameters.travelTime[i][j] = parameters.distanceOriginal[i][j] / parameters.speed;
 
         for (int j = 0; j < parameters.customerNum + 2; j++) {
-            parameters.cost[0][j] = parameters.distance[0][j];
-            parameters.cost[j][parameters.customerNum + 1] = parameters.distance[j][parameters.customerNum + 1];
+            parameters.cost[0][j] = parameters.distanceOriginal[0][j];
+            parameters.cost[j][parameters.customerNum + 1] = parameters.distanceOriginal[j][parameters.customerNum + 1];
         }
 
         // cost for the other edges are defined during column generation

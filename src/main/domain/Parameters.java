@@ -19,10 +19,6 @@ public class Parameters {
      * original distances for the Branch and Bound
      */
     public double[][] distanceOriginal;
-    /**
-     * distances that will be updated during the B&B before being used in the CG & ShortestPathWithRC
-     */
-    public double[][] distance;
     public double[][] travelTime;
     /**
      * weight of each edge during branch and bound
@@ -48,5 +44,7 @@ public class Parameters {
         this.speed = 1;
         this.vehicleNum = 0;
     }
+
+
 
 }

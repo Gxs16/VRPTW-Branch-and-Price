@@ -3,6 +3,7 @@ package main.algorithm.ShortestPath;
 import main.constants.NumericalConstants;
 import main.domain.Parameters;
 import main.domain.Route;
+import main.domain.TreeBB;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,10 +29,12 @@ import java.util.TreeSet;
 
 public class ShortestPathWithRC {
     Parameters userParam;
+    double[][] distance;
     ArrayList<Label> labels;
 
-    public ShortestPathWithRC(Parameters userParam) {
+    public ShortestPathWithRC(Parameters userParam, double[][] distance) {
         this.userParam = userParam;
+        this.distance = distance;
     }
 
     public List<Route> findShortestPath(int numRoute) {
@@ -128,7 +131,7 @@ public class ShortestPathWithRC {
                     }
                 } else {  // if not the depot, we can consider extensions of the path
                     for (int i = 0; i < userParam.customerNum + 2; i++) {
-                        if ((!current.vertexVisited[i]) && (userParam.distance[current.city][i] < NumericalConstants.veryBigNumber - 1e-6)) {  // don't go back to a vertex already visited or along a forbidden edge
+                        if ((!current.vertexVisited[i]) && (this.distance[current.city][i] < NumericalConstants.veryBigNumber - 1e-6)) {  // don't go back to a vertex already visited or along a forbidden edge
                             // ttime
                             float tt = (float) (current.travelTime + userParam.travelTime[current.city][i] + userParam.serviceTime.get(current.city));
                             if (tt < userParam.readyTime.get(i))

@@ -32,22 +32,35 @@ public class TreeBB {
      * to compute the global lower bound, need to know if everything above has been considered
      */
     public boolean topLevel;
+    /**
+     * distances that will be updated during the B&B before being used in the CG & ShortestPathWithRC
+     */
+    public double[][] distance;
 
-    public TreeBB(TreeBB father, TreeBB son0, int branchFrom, int branchTo, int branchValue, boolean topLevel) {
+    public TreeBB(TreeBB father, int branchFrom, int branchTo, int branchValue, boolean topLevel, double[][] distance) {
         this.father = father;
-        this.son0 = son0;
         this.branchFrom = branchFrom;
         this.branchTo = branchTo;
         this.branchValue = branchValue;
         this.topLevel = topLevel;
+
+        this.distance = new double[distance.length][distance.length];
+        for (int i = 0; i < distance.length; i++) {
+            System.arraycopy(distance[i], 0, this.distance[i], 0,
+                    distance[i].length);
+        }
     }
 
-    public TreeBB(TreeBB father, TreeBB son0, int branchFrom, int branchTo, int branchValue, double lowestValue) {
+    public TreeBB(TreeBB father, int branchFrom, int branchTo, int branchValue, double lowestValue, double[][] distance) {
         this.father = father;
-        this.son0 = son0;
         this.branchFrom = branchFrom;
         this.branchTo = branchTo;
         this.branchValue = branchValue;
         this.lowestValue = lowestValue;
+        this.distance = new double[distance.length][distance.length];
+        for (int i = 0; i < distance.length; i++) {
+            System.arraycopy(distance[i], 0, this.distance[i], 0,
+                    distance[i].length);
+        }
     }
 }
