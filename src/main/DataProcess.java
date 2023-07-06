@@ -53,9 +53,6 @@ public class DataProcess {
             parameters.cost[0][j] = parameters.distanceOriginal[0][j];
             parameters.cost[j][parameters.customerNum + 1] = parameters.distanceOriginal[j][parameters.customerNum + 1];
         }
-
-        // cost for the other edges are defined during column generation
-        parameters.edges = new double[parameters.customerNum + 2][parameters.customerNum + 2];
     }
 
     public static void readLocalFile(Parameters parameters, String inputPath) throws IOException {

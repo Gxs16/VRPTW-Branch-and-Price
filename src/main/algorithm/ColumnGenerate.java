@@ -30,7 +30,7 @@ import java.util.logging.Logger;
  */
 public class ColumnGenerate {
 
-    private final Logger logger = Logger.getLogger(ColumnGenerate.class.getSimpleName());
+    private static final Logger logger = Logger.getLogger(ColumnGenerate.class.getSimpleName());
 
     /**
      * Creation of a new class similar to an ArrayList for CPLEX unknowns
@@ -57,7 +57,7 @@ public class ColumnGenerate {
         }
     }
 
-    public double computeColGen(double[][] distance, Parameters userParam, ArrayList<Route> routes) {
+    public static double compute(double[][] distance, Parameters userParam, ArrayList<Route> routes) {
         int i, j, prevcity, city;
         double cost, obj;
         double[] pi;

@@ -36,6 +36,10 @@ public class TreeBB {
      * distances that will be updated during the B&B before being used in the CG & ShortestPathWithRC
      */
     public double[][] distance;
+    /**
+     * weight of each edge during branch and bound
+     */
+    public double[][] edges;
 
     public TreeBB(TreeBB father, int branchFrom, int branchTo, int branchValue, boolean topLevel, double[][] distance) {
         this.father = father;
@@ -49,6 +53,7 @@ public class TreeBB {
             System.arraycopy(distance[i], 0, this.distance[i], 0,
                     distance[i].length);
         }
+        this.edges = new double[distance.length][distance.length];
     }
 
     public TreeBB(TreeBB father, int branchFrom, int branchTo, int branchValue, double lowestValue, double[][] distance) {
@@ -62,5 +67,6 @@ public class TreeBB {
             System.arraycopy(distance[i], 0, this.distance[i], 0,
                     distance[i].length);
         }
+        this.edges = new double[distance.length][distance.length];
     }
 }

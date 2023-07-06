@@ -20,10 +20,6 @@ public class Parameters {
      */
     public double[][] distanceOriginal;
     public double[][] travelTime;
-    /**
-     * weight of each edge during branch and bound
-     */
-    public double[][] edges;
     public List<Double> positionX = new ArrayList<>();
     public List<Double> positionY = new ArrayList<>();
     public List<Double> demand = new ArrayList<>();

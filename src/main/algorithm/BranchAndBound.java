@@ -60,7 +60,7 @@ public class BranchAndBound {
      */
     public boolean node(Parameters userParam, ArrayList<Route> routes, TreeBB branching, ArrayList<Route> bestRoutes, int depth) {
         // check first that we need to solve this node. Not the case if we have already found a solution within the gap precision
-        if ((upperBound - lowerBound) / upperBound < NumericalConstants.gap)
+        if ((this.upperBound - this.lowerBound) / this.upperBound < NumericalConstants.gap)
             return true;
 
         // init
@@ -76,14 +76,11 @@ public class BranchAndBound {
             logger.info("Edge from " + branching.branchFrom + " to " + branching.branchTo + ": set");
         logger.info(LoggingUtil.generateRuntimeStatusLog());
 
-        // Compute a solution for this node using Column generation
-        ColumnGenerate CG = new ColumnGenerate();
-
-        double CGobj = CG.computeColGen(branching.distance, userParam, routes);
+        double CGobj = ColumnGenerate.compute(branching.distance, userParam, routes);
         // feasible ? Does a solution exist?
         if ((CGobj > 2 * userParam.maxLength) || (CGobj < -1e-6)) {
             // can only be true when the routes in the solution include forbidden edges (can happen when the BB set branching values)
-            logger.info(LoggingUtil.generateStatusLog(Status.RELAX_INFEASIBLE, lowerBound, upperBound, depth, CGobj, routes.size()));
+            logger.info(LoggingUtil.generateStatusLog(Status.RELAX_INFEASIBLE, this.lowerBound, this.upperBound, depth, CGobj, routes.size()));
 
             return true; // stop this branch
         }
@@ -97,91 +94,86 @@ public class BranchAndBound {
         } else if (branching.father == null) // root node
             this.lowerBound = CGobj;
 
-        if (branching.lowestValue > upperBound) {
-            logger.info(LoggingUtil.generateStatusLog(Status.CUT, lowerBound, upperBound, depth, CGobj, routes.size()));
+        if (branching.lowestValue > this.upperBound) {
+            logger.info(LoggingUtil.generateStatusLog(Status.CUT, this.lowerBound, this.upperBound, depth, CGobj, routes.size()));
 
             return true; // cut this useless branch
-        } else {
-            // check the (integer) feasibility. Otherwise, search for a branching variable
+        }
 
-            // transform the path variable (of the CG model) into edges variables
-            for (double[] edge : userParam.edges)
-                java.util.Arrays.fill(edge, 0.0);
-            for (Route r : routes) {
-                if (r.getQuantity() > 1e-6) { // we consider only the routes in the current
-                    // local solution
-                    ArrayList<Integer> path = r.getPath(); // get back the sequence of cities (path for thisRoute)
-                    int prevcity = 0;
-                    for (int i = 1; i < path.size(); i++) {
-                        int city = path.get(i);
-                        userParam.edges[prevcity][city] += r.getQuantity(); // convert into edges
-                        prevcity = city;
-                    }
+        // check the (integer) feasibility. Otherwise, search for a branching variable
+
+        // transform the path variable (of the CG model) into edges variables
+        for (Route r : routes) {
+            if (r.getQuantity() > NumericalConstants.integerTolerance) { // we consider only the routes in the current
+                // local solution
+                ArrayList<Integer> path = r.getPath(); // get back the sequence of cities (path for thisRoute)
+                int prevcity = 0;
+                for (int i = 1; i < path.size(); i++) {
+                    int city = path.get(i);
+                    branching.edges[prevcity][city] += r.getQuantity(); // convert into edges
+                    prevcity = city;
                 }
-            }
-
-            Edge bestEdge = findBestFractionalEdge(userParam, routes);
-
-            if (bestEdge == null) {
-                if (branching.lowestValue < upperBound) { // new incumbent feasible solution!
-                    upperBound = branching.lowestValue;
-                    bestRoutes.clear();
-                    for (Route r : routes) {
-                        if (r.getQuantity() > 1e-6) {
-                            Route optimum = new Route();
-                            optimum.setCost(r.getCost());
-                            optimum.path = r.getPath();
-                            optimum.setQuantity(r.getQuantity());
-                            bestRoutes.add(optimum);
-                        }
-                    }
-                    logger.info(LoggingUtil.generateStatusLog(Status.OPTIMAL, lowerBound, upperBound, depth, CGobj, routes.size()));
-
-                } else {
-                    logger.info(LoggingUtil.generateStatusLog(Status.FEASIBLE, lowerBound, upperBound, depth, CGobj, routes.size()));
-                }
-                return true;
-            } else {
-                logger.info(LoggingUtil.generateStatusLog(Status.INTEGER_INFEASIBLE, lowerBound, upperBound, depth, CGobj, routes.size()));
-                // branching (diving strategy)
-
-                // first branch -> set edges[bestEdge1][bestEdge2]=0
-                // record the branching information in a tree list
-                TreeBB newNode1 = new TreeBB(branching, bestEdge.from, bestEdge.to, bestEdge.branchingDirection, -NumericalConstants.veryBigNumber, branching.distance);
-                // first version was not with bestVal but with 0
-
-                // branching on edges[bestEdge1][bestEdge2]=0
-                EdgesBasedOnBranching(newNode1);
-
-                // the initial lp for the CG contains all the routes of the previous solution less the routes containing this arc
-                ArrayList<Route> nodeRoutes = filterRoutes(newNode1, routes);
-
-                boolean ok;
-                ok = node(userParam, nodeRoutes, newNode1, bestRoutes, depth + 1);
-                if (!ok) {
-                    return false;
-                }
-
-                branching.son0 = newNode1;
-
-                // second branch -> set edges[bestEdge1][bestEdge2]=1
-                // record the branching information in a tree list
-                TreeBB newNode2 = new TreeBB(branching, bestEdge.from, bestEdge.to, 1 - bestEdge.branchingDirection, -NumericalConstants.veryBigNumber, branching.distance);
-
-                // branching on edges[bestEdge1][bestEdge2]=1
-                // second branching=>need to reinitialize the dist matrix
-                EdgesBasedOnBranching(newNode2);
-                // the initial lp for the CG contains all the routes of the previous solution less the routes incompatible with this arc
-                ArrayList<Route> nodeRoutes2 = filterRoutes(newNode2, routes);
-                ok = node(userParam, nodeRoutes2, newNode2, bestRoutes, depth + 1);
-
-                // update the lowest feasible value of this node
-                branching.lowestValue = Math.min(newNode1.lowestValue, newNode2.lowestValue);
-
-                return ok;
-
             }
         }
+
+        Edge bestEdge = findBestFractionalEdge(userParam, routes, branching.edges);
+
+        if (bestEdge == null) {
+            if (branching.lowestValue < this.upperBound) { // new incumbent feasible solution!
+                this.upperBound = branching.lowestValue;
+                bestRoutes.clear();
+                for (Route r : routes) {
+                    if (r.getQuantity() > NumericalConstants.integerTolerance) {
+                        Route optimum = new Route();
+                        optimum.setCost(r.getCost());
+                        optimum.path = r.getPath();
+                        optimum.setQuantity(r.getQuantity());
+                        bestRoutes.add(optimum);
+                    }
+                }
+                logger.info(LoggingUtil.generateStatusLog(Status.OPTIMAL, this.lowerBound, this.upperBound, depth, CGobj, routes.size()));
+
+            } else {
+                logger.info(LoggingUtil.generateStatusLog(Status.FEASIBLE, this.lowerBound, this.upperBound, depth, CGobj, routes.size()));
+            }
+            return true;
+        }
+        logger.info(LoggingUtil.generateStatusLog(Status.INTEGER_INFEASIBLE, this.lowerBound, this.upperBound, depth, CGobj, routes.size()));
+        // branching (diving strategy)
+
+        // first branch -> set edges[bestEdge1][bestEdge2]=0
+        // record the branching information in a tree list
+        TreeBB newNode1 = new TreeBB(branching, bestEdge.from, bestEdge.to, bestEdge.branchingDirection, -NumericalConstants.veryBigNumber, branching.distance);
+        // first version was not with bestVal but with 0
+
+        // branching on edges[bestEdge1][bestEdge2]=0
+        EdgesBasedOnBranching(newNode1);
+
+        // the initial lp for the CG contains all the routes of the previous solution less the routes containing this arc
+        ArrayList<Route> nodeRoutes = filterRoutes(newNode1, routes);
+
+        boolean ok = node(userParam, nodeRoutes, newNode1, bestRoutes, depth + 1);
+        if (!ok) {
+            return false;
+        }
+
+        branching.son0 = newNode1;
+
+        // second branch -> set edges[bestEdge1][bestEdge2]=1
+        // record the branching information in a tree list
+        TreeBB newNode2 = new TreeBB(branching, bestEdge.from, bestEdge.to, 1 - bestEdge.branchingDirection, -NumericalConstants.veryBigNumber, branching.distance);
+
+        // branching on edges[bestEdge1][bestEdge2]=1
+        // second branching=>need to reinitialize the dist matrix
+        EdgesBasedOnBranching(newNode2);
+        // the initial lp for the CG contains all the routes of the previous solution less the routes incompatible with this arc
+        ArrayList<Route> nodeRoutes2 = filterRoutes(newNode2, routes);
+        ok = node(userParam, nodeRoutes2, newNode2, bestRoutes, depth + 1);
+
+        // update the lowest feasible value of this node
+        branching.lowestValue = Math.min(newNode1.lowestValue, newNode2.lowestValue);
+
+        return ok;
     }
 
     private static ArrayList<Route> filterRoutes(TreeBB branching, ArrayList<Route> routes) {
@@ -204,12 +196,12 @@ public class BranchAndBound {
         return nodeRoutes;
     }
 
-    private static Edge findBestFractionalEdge(Parameters userParam, ArrayList<Route> routes) {
+    private static Edge findBestFractionalEdge(Parameters userParam, ArrayList<Route> routes, double[][] edges) {
         Edge res = null;
         double bestObj = -1.0;
         for (int i = 0; i < userParam.customerNum + 2; i++) {
             for (int j = 0; j < userParam.customerNum + 2; j++) {
-                double coefficient = userParam.edges[i][j];
+                double coefficient = edges[i][j];
                 if ((coefficient > NumericalConstants.integerTolerance) && (coefficient < 1.0-NumericalConstants.integerTolerance || coefficient > 1.0+NumericalConstants.integerTolerance)) {
                     // this Route.java has a fractional coefficient in the solution => should we branch on this one?
                     // what if we impose this Route.java in the solution? Q=1
