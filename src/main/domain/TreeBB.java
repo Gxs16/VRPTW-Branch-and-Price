@@ -4,6 +4,7 @@ package main.domain;
  * this is a linked tree list recording all the branching during Branch and Bound
  */
 public class TreeBB {
+    public int index;
     /**
      * link to the node processed before branching
      */
@@ -11,7 +12,11 @@ public class TreeBB {
     /**
      * link to the son on the left of the tree (edge=0; first processed) => need it to compute the global lower bound
      */
-    public TreeBB son0;
+    public TreeBB sonLeft;
+    /**
+     * link to the node on the right of the tree
+     */
+    public TreeBB sonRight;
     /**
      * we branch on edges between cities => city origin of the edge
      */
@@ -41,7 +46,8 @@ public class TreeBB {
      */
     public double[][] edges;
 
-    public TreeBB(TreeBB father, int branchFrom, int branchTo, int branchValue, boolean topLevel, double[][] distance) {
+    public TreeBB(int index, TreeBB father, int branchFrom, int branchTo, int branchValue, boolean topLevel, double[][] distance) {
+        this.index = index;
         this.father = father;
         this.branchFrom = branchFrom;
         this.branchTo = branchTo;
@@ -56,7 +62,8 @@ public class TreeBB {
         this.edges = new double[distance.length][distance.length];
     }
 
-    public TreeBB(TreeBB father, int branchFrom, int branchTo, int branchValue, double lowestValue, double[][] distance) {
+    public TreeBB(int index, TreeBB father, int branchFrom, int branchTo, int branchValue, double lowestValue, double[][] distance) {
+        this.index = index;
         this.father = father;
         this.branchFrom = branchFrom;
         this.branchTo = branchTo;

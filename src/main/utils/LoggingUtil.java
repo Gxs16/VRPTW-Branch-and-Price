@@ -2,13 +2,14 @@ package main.utils;
 
 import main.domain.Route;
 import main.constants.Status;
+import main.domain.TreeBB;
 
 import java.util.ArrayList;
 
 public class LoggingUtil {
-    public static String generateStatusLog(Status status, double lowerBound, double upperBound, int depth, double columnGenCost, int routeNum) {
-        return String.format("%s | Lower bound: %s | Upper bound: %s | Gap: %s | Branch&Bound Depth: %s | Local CG cost: %s | %s routes",
-                status.getName(), lowerBound, upperBound, ((upperBound - lowerBound) / upperBound), depth, columnGenCost, routeNum);
+    public static String generateStatusLog(int nodeIndex, Status status, double lowerBound, double upperBound, int depth, double columnGenCost, int routeNum) {
+        return String.format("Node: %s Depth: %s | %s | Lower bound: %s | Upper bound: %s | Gap: %s | Local CG cost: %s | %s routes",
+                nodeIndex, depth, status.getName(), lowerBound, upperBound, ((upperBound - lowerBound) / upperBound), columnGenCost, routeNum);
     }
 
     public static String generateRuntimeStatusLog() {
@@ -30,5 +31,12 @@ public class LoggingUtil {
 
         result.append("Best Cost: ").append(optCost);
         return result.toString();
+    }
+
+    public static String generateBranchLog(TreeBB branch) {
+        if (branch.branchValue < 1)
+            return "Edge from " + branch.branchFrom + " to " + branch.branchTo + ": forbid";
+        else
+            return "Edge from " + branch.branchFrom + " to " + branch.branchTo + ": set";
     }
 }
