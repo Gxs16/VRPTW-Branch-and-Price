@@ -3,10 +3,12 @@ package main.constants;
 public enum Status {
     /** cut this useless branch*/
     CUT("CUT"),
-    OPTIMAL("OPTIMAL"),
+    INCUMBENT("INCUMBENT"),
     FEASIBLE("FEASIBLE"),
     RELAX_INFEASIBLE("RELAX INFEASIBLE"),
-    INTEGER_INFEASIBLE("INTEGER INFEASIBLE");
+    INTEGER_INFEASIBLE("INTEGER INFEASIBLE"),
+    /** already found a solution within the gap precision */
+    WITHIN_PRECISION("WITHIN_PRECISION");
 
     private final String name;
 

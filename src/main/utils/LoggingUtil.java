@@ -7,9 +7,10 @@ import main.domain.TreeBB;
 import java.util.ArrayList;
 
 public class LoggingUtil {
-    public static String generateStatusLog(int nodeIndex, Status status, double lowerBound, double upperBound, int depth, double columnGenCost, int routeNum) {
+
+    public static String generateStatusLog(TreeBB branching, double lowerBound, double upperBound, int routeNum) {
         return String.format("Node: %s Depth: %s | %s | Lower bound: %s | Upper bound: %s | Gap: %s | Local CG cost: %s | %s routes",
-                nodeIndex, depth, status.getName(), lowerBound, upperBound, ((upperBound - lowerBound) / upperBound), columnGenCost, routeNum);
+                branching.index, branching.depth, branching.status.getName(), lowerBound, upperBound, ((upperBound - lowerBound) / upperBound), branching.object, routeNum);
     }
 
     public static String generateRuntimeStatusLog() {

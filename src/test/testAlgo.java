@@ -22,7 +22,7 @@ public class testAlgo {
         ArrayList<Route> initRoutes = new ArrayList<>();
         ArrayList<Route> bestRoutes = new ArrayList<>();
 
-        bp.node(instance, initRoutes, null, bestRoutes, 0);
+        bp.node(instance, initRoutes, null, bestRoutes);
         logger.info(LoggingUtil.generateSolutionLog(bestRoutes));
         long endTime = System.currentTimeMillis();
         logger.info(String.format("Execution time: %s ms", (endTime-startTime)));

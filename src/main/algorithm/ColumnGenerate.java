@@ -128,7 +128,6 @@ public class ColumnGenerate {
             // ---------------------------------------------------------
             // column generation process
             // ---------------------------------------------------------
-            DecimalFormat df = new DecimalFormat("#0000.00");
             oncemore = true;
             double[] prevobj = new double[100];
             int previ = -1;

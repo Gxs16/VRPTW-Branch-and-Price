@@ -1,10 +1,13 @@
 package main.domain;
 
+import main.constants.Status;
+
 /**
  * this is a linked tree list recording all the branching during Branch and Bound
  */
 public class TreeBB {
     public int index;
+    public int depth;
     /**
      * link to the node processed before branching
      */
@@ -30,9 +33,13 @@ public class TreeBB {
      */
     public int branchValue;
     /**
+     * linear relax object
+     */
+    public double object;
+    /**
      * lower bound on the solution if we start from this node (i.e. looking only down for this tree)
      */
-    public double lowestValue;
+    public double lowerBound;
     /**
      * to compute the global lower bound, need to know if everything above has been considered
      */
@@ -45,14 +52,14 @@ public class TreeBB {
      * weight of each edge during branch and bound
      */
     public double[][] edges;
+    public Status status;
 
-    public TreeBB(int index, TreeBB father, int branchFrom, int branchTo, int branchValue, boolean topLevel, double[][] distance) {
-        this.index = index;
-        this.father = father;
-        this.branchFrom = branchFrom;
-        this.branchTo = branchTo;
-        this.branchValue = branchValue;
-        this.topLevel = topLevel;
+    public TreeBB(double[][] distance) {
+        this.father = null;
+        this.branchFrom = -1;
+        this.branchTo = -1;
+        this.branchValue = -1;
+        this.topLevel = true;
 
         this.distance = new double[distance.length][distance.length];
         for (int i = 0; i < distance.length; i++) {
@@ -62,13 +69,14 @@ public class TreeBB {
         this.edges = new double[distance.length][distance.length];
     }
 
-    public TreeBB(int index, TreeBB father, int branchFrom, int branchTo, int branchValue, double lowestValue, double[][] distance) {
+    public TreeBB(int index, TreeBB father, int branchFrom, int branchTo, int branchValue, double object, double[][] distance) {
         this.index = index;
         this.father = father;
+        this.depth = father.depth + 1;
         this.branchFrom = branchFrom;
         this.branchTo = branchTo;
         this.branchValue = branchValue;
-        this.lowestValue = lowestValue;
+        this.object = object;
         this.distance = new double[distance.length][distance.length];
         for (int i = 0; i < distance.length; i++) {
             System.arraycopy(distance[i], 0, this.distance[i], 0,

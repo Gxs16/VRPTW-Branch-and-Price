@@ -14,7 +14,6 @@ import java.util.logging.Logger;
 public class BranchAndBound {
     private double lowerBound;
     private double upperBound;
-    private int totalNodes;
     private final Logger logger = Logger.getLogger(BranchAndBound.class.getSimpleName());
 
     public BranchAndBound() {
@@ -57,45 +56,51 @@ public class BranchAndBound {
      * @param routes     all (but we could decide to keep only a subset) the routes considered up to now (to initialize the Column generation process)
      * @param branching  BB branching context information for the current node to process (branching edge var, branching value, branching from...)
      * @param bestRoutes best solution encountered
-     * @param depth      depth of this node in TreeBB
      */
-    public void node(Parameters userParam, ArrayList<Route> routes, TreeBB branching, ArrayList<Route> bestRoutes, int depth) {
+    public void node(Parameters userParam, ArrayList<Route> routes, TreeBB branching, ArrayList<Route> bestRoutes) {
         // check first that we need to solve this node. Not the case if we have already found a solution within the gap precision
-        if ((this.upperBound - this.lowerBound) / this.upperBound < NumericalConstants.gap)
+        if ((this.upperBound - this.lowerBound) / this.upperBound < NumericalConstants.gap) {
+            branching.status = Status.WITHIN_PRECISION;
+            logger.info(LoggingUtil.generateStatusLog(branching, this.lowerBound, this.upperBound, routes.size()));
             return;
+        }
+
 
         // init
         if (branching == null) {
             // first call - root node
-            branching = new TreeBB(this.totalNodes, null, -1, -1, -1, true, userParam.distanceOriginal);
-            this.totalNodes += 1;
+            branching = new TreeBB(userParam.distanceOriginal);
         }
 
         // display some local info
         logger.info(LoggingUtil.generateBranchLog(branching));
 
         double CGobj = ColumnGenerate.compute(branching.distance, userParam, routes);
+        branching.object = CGobj;
+        branching.lowerBound = CGobj;
         // feasible ? Does a solution exist?
         if ((CGobj > 2 * userParam.maxLength) || (CGobj < -1e-6)) {
             // can only be true when the routes in the solution include forbidden edges (can happen when the BB set branching values)
-            logger.info(LoggingUtil.generateStatusLog(branching.index, Status.RELAX_INFEASIBLE, this.lowerBound, this.upperBound, depth, CGobj, routes.size()));
+
+            branching.status = Status.RELAX_INFEASIBLE;
+            logger.info(LoggingUtil.generateStatusLog(branching, this.lowerBound, this.upperBound, routes.size()));
 
             return; // stop this branch
         }
-        branching.lowestValue = CGobj;
+
+        if (branching.object > this.upperBound) {
+            branching.status = Status.CUT;
+            logger.info(LoggingUtil.generateStatusLog(branching, this.lowerBound, this.upperBound, routes.size()));
+            return; // cut this useless branch
+        }
 
         // update the global lower bound when required
         if (branching.father != null && branching.father.sonLeft != null && branching.father.topLevel) {
             // all nodes above and on the left have been processed=> we can compute a new lower bound
-            this.lowerBound = Math.min(branching.lowestValue, branching.father.sonLeft.lowestValue);
+            this.lowerBound = Math.min(branching.lowerBound, branching.father.sonLeft.lowerBound);
             branching.topLevel = true;
-        } else if (branching.father == null) // root node
+        } else if (branching.father == null){// root node
             this.lowerBound = CGobj;
-
-        if (branching.lowestValue > this.upperBound) {
-            logger.info(LoggingUtil.generateStatusLog(branching.index,Status.CUT, this.lowerBound, this.upperBound, depth, CGobj, routes.size()));
-
-            return; // cut this useless branch
         }
 
         // check the (integer) feasibility. Otherwise, search for a branching variable
@@ -117,8 +122,8 @@ public class BranchAndBound {
         Edge bestEdge = findBestFractionalEdge(userParam, routes, branching.edges);
 
         if (bestEdge == null) {
-            if (branching.lowestValue < this.upperBound) { // new incumbent feasible solution!
-                this.upperBound = branching.lowestValue;
+            if (branching.object < this.upperBound) { // new incumbent feasible solution!
+                this.upperBound = branching.object;
                 bestRoutes.clear();
                 for (Route r : routes) {
                     if (r.getQuantity() > NumericalConstants.integerTolerance) {
@@ -129,40 +134,39 @@ public class BranchAndBound {
                         bestRoutes.add(optimum);
                     }
                 }
-                logger.info(LoggingUtil.generateStatusLog(branching.index,Status.OPTIMAL, this.lowerBound, this.upperBound, depth, CGobj, routes.size()));
-
+                branching.status = Status.INCUMBENT;
+                logger.info(LoggingUtil.generateStatusLog(branching, this.lowerBound, this.upperBound, routes.size()));
             } else {
-                logger.info(LoggingUtil.generateStatusLog(branching.index,Status.FEASIBLE, this.lowerBound, this.upperBound, depth, CGobj, routes.size()));
+                branching.status = Status.FEASIBLE;
+                logger.info(LoggingUtil.generateStatusLog(branching, this.lowerBound, this.upperBound, routes.size()));
             }
             return;
         }
-        logger.info(LoggingUtil.generateStatusLog(branching.index,Status.INTEGER_INFEASIBLE, this.lowerBound, this.upperBound, depth, CGobj, routes.size()));
-        // branching (diving strategy)
+        branching.status = Status.INTEGER_INFEASIBLE;
+        logger.info(LoggingUtil.generateStatusLog(branching, this.lowerBound, this.upperBound, routes.size()));        // branching (diving strategy)
 
         // first branch -> set edges[bestEdge1][bestEdge2]=0
         // record the branching information in a tree list
-        branching.sonLeft = new TreeBB(this.totalNodes, branching, bestEdge.from, bestEdge.to, bestEdge.branchingDirection, -NumericalConstants.veryBigNumber, branching.distance);
-        this.totalNodes += 1;
+        branching.sonLeft = new TreeBB(branching.index * 2 + 1, branching, bestEdge.from, bestEdge.to, bestEdge.branchingDirection, -NumericalConstants.veryBigNumber, branching.distance);
         // first version was not with bestVal but with 0
         // branching on edges[bestEdge1][bestEdge2]=0
         EdgesBasedOnBranching(branching.sonLeft);
         // the initial lp for the CG contains all the routes of the previous solution less the routes containing this arc
         ArrayList<Route> nodeRoutes = filterRoutes(branching.sonLeft, routes);
-        node(userParam, nodeRoutes, branching.sonLeft, bestRoutes, depth + 1);
+        node(userParam, nodeRoutes, branching.sonLeft, bestRoutes);
 
         // second branch -> set edges[bestEdge1][bestEdge2]=1
         // record the branching information in a tree list
-        branching.sonRight = new TreeBB(this.totalNodes, branching, bestEdge.from, bestEdge.to, 1 - bestEdge.branchingDirection, -NumericalConstants.veryBigNumber, branching.distance);
-        this.totalNodes += 1;
+        branching.sonRight = new TreeBB(branching.index * 2 + 2, branching, bestEdge.from, bestEdge.to, 1 - bestEdge.branchingDirection, -NumericalConstants.veryBigNumber, branching.distance);
         // branching on edges[bestEdge1][bestEdge2]=1
         // second branching=>need to reinitialize the dist matrix
         EdgesBasedOnBranching(branching.sonRight);
         // the initial lp for the CG contains all the routes of the previous solution less the routes incompatible with this arc
         ArrayList<Route> nodeRoutes2 = filterRoutes(branching.sonRight, routes);
-        node(userParam, nodeRoutes2, branching.sonRight, bestRoutes, depth + 1);
+        node(userParam, nodeRoutes2, branching.sonRight, bestRoutes);
 
         // update the lowest feasible value of this node
-        branching.lowestValue = Math.min(branching.sonLeft.lowestValue, branching.sonRight.lowestValue);
+        branching.lowerBound = Math.min(branching.sonLeft.lowerBound, branching.sonRight.lowerBound);
 
     }
 
