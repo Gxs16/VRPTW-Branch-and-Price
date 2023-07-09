@@ -5,21 +5,21 @@ import main.constants.Status;
 /**
  * this is a linked tree list recording all the branching during Branch and Bound
  */
-public class TreeBB {
+public class NodeBB {
     public int index;
     public int depth;
     /**
      * link to the node processed before branching
      */
-    public TreeBB father;
+    public NodeBB father;
     /**
      * link to the son on the left of the tree (edge=0; first processed) => need it to compute the global lower bound
      */
-    public TreeBB sonLeft;
+    public NodeBB sonLeft;
     /**
      * link to the node on the right of the tree
      */
-    public TreeBB sonRight;
+    public NodeBB sonRight;
     /**
      * we branch on edges between cities => city origin of the edge
      */
@@ -50,7 +50,7 @@ public class TreeBB {
     public double[][] edges;
     public Status status;
 
-    public TreeBB(double[][] distance) {
+    public NodeBB(double[][] distance) {
         this.father = null;
         this.branchFrom = -1;
         this.branchTo = -1;
@@ -64,7 +64,7 @@ public class TreeBB {
         this.edges = new double[distance.length][distance.length];
     }
 
-    public TreeBB(int index, TreeBB father, int branchFrom, int branchTo, int branchValue, double object, double[][] distance) {
+    public NodeBB(int index, NodeBB father, int branchFrom, int branchTo, int branchValue, double object, double[][] distance) {
         this.index = index;
         this.father = father;
         this.depth = father.depth + 1;

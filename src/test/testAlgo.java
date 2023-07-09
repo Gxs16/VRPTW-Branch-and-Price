@@ -4,6 +4,7 @@ import main.DataProcess;
 import main.algorithm.BranchAndBound;
 import main.domain.Parameters;
 import main.domain.Route;
+import main.domain.NodeBB;
 import main.utils.LoggingUtil;
 
 import java.util.ArrayList;
@@ -21,8 +22,8 @@ public class testAlgo {
         Parameters instance = DataProcess.initParams(filePath);
         ArrayList<Route> initRoutes = new ArrayList<>();
         ArrayList<Route> bestRoutes = new ArrayList<>();
-
-        bp.node(instance, initRoutes, null, bestRoutes);
+        NodeBB root = new NodeBB(instance.distanceOriginal);
+        bp.branch(instance, initRoutes, root, bestRoutes);
         logger.info(LoggingUtil.generateSolutionLog(bestRoutes));
         long endTime = System.currentTimeMillis();
         logger.info(String.format("Execution time: %s ms", (endTime-startTime)));
