@@ -41,10 +41,6 @@ public class TreeBB {
      */
     public double lowerBound;
     /**
-     * to compute the global lower bound, need to know if everything above has been considered
-     */
-    public boolean topLevel;
-    /**
      * distances that will be updated during the B&B before being used in the CG & ShortestPathWithRC
      */
     public double[][] distance;
@@ -59,7 +55,6 @@ public class TreeBB {
         this.branchFrom = -1;
         this.branchTo = -1;
         this.branchValue = -1;
-        this.topLevel = true;
 
         this.distance = new double[distance.length][distance.length];
         for (int i = 0; i < distance.length; i++) {

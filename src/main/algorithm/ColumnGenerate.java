@@ -7,6 +7,7 @@ import main.algorithm.ShortestPath.ShortestPathWithRC;
 import main.constants.NumericalConstants;
 import main.domain.Parameters;
 import main.domain.Route;
+import main.utils.LoggingUtil;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -191,7 +192,7 @@ public class ColumnGenerate {
 
                         oncemore = true;
                     }
-                    logger.info("CG Iter " + previ + " Current cost: " + df.format(prevobj[previ % 100]) + " " + routes.size() + " routes");
+                    logger.info(LoggingUtil.generateIterationLog(previ, prevobj, routes.size()));
 
                 }
             }

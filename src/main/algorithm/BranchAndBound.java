@@ -9,11 +9,14 @@ import main.domain.TreeBB;
 import main.utils.LoggingUtil;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 
 public class BranchAndBound {
     private double lowerBound;
     private double upperBound;
+    private Map<Integer, Double> index2Obj = new HashMap<>();
     private final Logger logger = Logger.getLogger(BranchAndBound.class.getSimpleName());
 
     public BranchAndBound() {
@@ -77,7 +80,25 @@ public class BranchAndBound {
 
         double CGobj = ColumnGenerate.compute(branching.distance, userParam, routes);
         branching.object = CGobj;
+        index2Obj.put(branching.index, CGobj);
         branching.lowerBound = CGobj;
+
+        // update the global lower bound when required
+        if (branching.father != null && (branching.index == (int) Math.pow(2, branching.depth+1) - 2)) {
+            // all nodes above and on the left have been processed=> we can compute a new lower bound
+            double lowerBound = branching.object;
+            int leftIndex = branching.index - 1;
+            int fatherIndex = (branching.index - 1) / 2;
+
+            while (leftIndex >= 0) {
+                lowerBound = Math.min(lowerBound, this.index2Obj.getOrDefault(leftIndex, NumericalConstants.veryBigNumber));
+                leftIndex = fatherIndex - 1;
+                fatherIndex = (fatherIndex - 1) / 2;
+            }
+            this.lowerBound = lowerBound;
+        } else if (branching.father == null){// root node
+            this.lowerBound = CGobj;
+        }
         // feasible ? Does a solution exist?
         if ((CGobj > 2 * userParam.maxLength) || (CGobj < -1e-6)) {
             // can only be true when the routes in the solution include forbidden edges (can happen when the BB set branching values)
@@ -87,21 +108,12 @@ public class BranchAndBound {
 
             return; // stop this branch
         }
-
         if (branching.object > this.upperBound) {
             branching.status = Status.CUT;
             logger.info(LoggingUtil.generateStatusLog(branching, this.lowerBound, this.upperBound, routes.size()));
             return; // cut this useless branch
         }
 
-        // update the global lower bound when required
-        if (branching.father != null && branching.father.sonLeft != null && branching.father.topLevel) {
-            // all nodes above and on the left have been processed=> we can compute a new lower bound
-            this.lowerBound = Math.min(branching.lowerBound, branching.father.sonLeft.lowerBound);
-            branching.topLevel = true;
-        } else if (branching.father == null){// root node
-            this.lowerBound = CGobj;
-        }
 
         // check the (integer) feasibility. Otherwise, search for a branching variable
 
