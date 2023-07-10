@@ -12,10 +12,6 @@ public class Parameters {
     public int customerNum;
     public int capacity;
     /**
-     * for the ShortestPathWithRC sub problem
-     */
-    public double[][] cost;
-    /**
      * original distances for the Branch and Bound
      */
     public double[][] distanceOriginal;

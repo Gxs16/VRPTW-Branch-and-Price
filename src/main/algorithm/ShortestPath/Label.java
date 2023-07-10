@@ -31,13 +31,13 @@ public class Label {
     public boolean dominated;
     public boolean[] vertexVisited;
 
-    public Label(int a1, int a2, double a3, float a4, double a5, boolean a6, boolean[] a7) {
-        this.city = a1;
-        this.indexPrevLabel = a2;
-        this.cost = a3;
-        this.travelTime = a4;
-        this.demand = a5;
-        this.dominated = a6;
-        this.vertexVisited = a7;
+    public Label(int city, int indexPrevLabel, double cost, float travelTime, double demand, boolean dominated, boolean[] vertexVisited) {
+        this.city = city;
+        this.indexPrevLabel = indexPrevLabel;
+        this.cost = cost;
+        this.travelTime = travelTime;
+        this.demand = demand;
+        this.dominated = dominated;
+        this.vertexVisited = vertexVisited;
     }
 }

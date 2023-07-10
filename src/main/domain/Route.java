@@ -1,6 +1,7 @@
 package main.domain;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class Route implements Cloneable {
     public double cost;
@@ -49,13 +50,7 @@ public class Route implements Cloneable {
         return this.path;
     }
 
-    public void switchPath() {
-        Integer swap;
-        int nb = path.size() / 2;
-        for (int i = 0; i < nb; i++) {
-            swap = path.get(i);
-            path.set(i, path.get(path.size() - 1 - i));
-            path.set(path.size() - 1 - i, swap);
-        }
+    public void reversePath() {
+        Collections.reverse(this.path);
     }
 }

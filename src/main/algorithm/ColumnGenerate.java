@@ -9,7 +9,6 @@ import main.domain.Parameters;
 import main.domain.Route;
 import main.utils.LoggingUtil;
 
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -59,12 +58,11 @@ public class ColumnGenerate {
     }
 
     public static double compute(double[][] distance, Parameters userParam, ArrayList<Route> routes) {
-        int i, j, prevcity, city;
-        double cost, obj;
-        double[] pi;
-        boolean oncemore;
-
-        try {
+        double[][] costs = new double[userParam.customerNum + 2][userParam.customerNum + 2];
+        for (int i = 0; i < userParam.customerNum + 2; i++) {
+            System.arraycopy(distance[i], 0, costs[i], 0, userParam.customerNum + 2);
+        }
+        try (IloCplex cplex = new IloCplex()) {
 
             // ---------------------------------------------------------
             // construct the model for the Restricted Master Problem
@@ -74,13 +72,12 @@ public class ColumnGenerate {
             // However, since the final goal is to encompass it inside Branch and Bound (BB),
             // it would (probably) be better to create only once the CPlex env when we
             // initiate the BB and to work with the same (but adjusted) lp matrix each time
-            IloCplex cplex = new IloCplex();
 
             IloObjective objfunc = cplex.addMinimize();
 
             // for each vertex/client, one constraint (chapter 3, 3.23 )
             IloRange[] lpmatrix = new IloRange[userParam.customerNum];
-            for (i = 0; i < userParam.customerNum; i++)
+            for (int i = 0; i < userParam.customerNum; i++)
                 lpmatrix[i] = cplex.addRange(1.0, Double.MAX_VALUE);
             // for each constraint, right member >=1
             // lpmatrix[i] = cplex.addRange(1.0, 1.0);
@@ -95,11 +92,10 @@ public class ColumnGenerate {
             // again the CG from scratch at each node of the BB!)
             // (we should reuse parts of the previous solution(s))
             for (Route r : routes) {
-                int v;
-                cost = 0.0;
-                prevcity = 0;
-                for (i = 1; i < r.getPath().size(); i++) {
-                    city = r.getPath().get(i);
+                double cost = 0.0;
+                int prevcity = 0;
+                for (int i = 1; i < r.getPath().size(); i++) {
+                    int city = r.getPath().get(i);
                     cost += distance[prevcity][city];
                     prevcity = city;
                 }
@@ -107,8 +103,8 @@ public class ColumnGenerate {
                 r.setCost(cost);
                 IloColumn column = cplex.column(objfunc, r.getCost());
                 // obj coefficient
-                for (i = 1; i < r.getPath().size() - 1; i++) {
-                    v = r.getPath().get(i) - 1;
+                for (int i = 1; i < r.getPath().size() - 1; i++) {
+                    int v = r.getPath().get(i) - 1;
                     column = column.and(cplex.column(lpmatrix[v], 1.0));
                     // coefficient of y_i in (3.23) => 0 for the other y_p
                 }
@@ -129,7 +125,7 @@ public class ColumnGenerate {
             // ---------------------------------------------------------
             // column generation process
             // ---------------------------------------------------------
-            oncemore = true;
+            boolean oncemore = true;
             double[] prevobj = new double[100];
             int previ = -1;
             while (oncemore) {
@@ -151,13 +147,14 @@ public class ColumnGenerate {
                 // solve the sub problem to find new columns (if any)
                 // ---------------------------------------------------------
                 // first define the new costs for the sub problem objective function (ShortestPathWithRC)
-                pi = cplex.getDuals(lpmatrix);
-                for (i = 1; i < userParam.customerNum + 1; i++)
-                    for (j = 0; j < userParam.customerNum + 2; j++)
-                        userParam.cost[i][j] = distance[i][j] - pi[i - 1];
+
+                double[] pi = cplex.getDuals(lpmatrix);
+                for (int i = 1; i < userParam.customerNum + 1; i++)
+                    for (int j = 0; j < userParam.customerNum + 2; j++)
+                        costs[i][j] = distance[i][j] - pi[i - 1];
 
                 // start dynamic programming
-                ShortestPathWithRC sp = new ShortestPathWithRC(userParam, distance);
+                ShortestPathWithRC sp = new ShortestPathWithRC(userParam, distance, costs);
 
                 // shortest paths with negative cost
                 // if ((previ>100) &&
@@ -174,11 +171,11 @@ public class ColumnGenerate {
                 if (routesSPPRC.size() > 0) {
                     for (Route r : routesSPPRC) {
                         ArrayList<Integer> rout = r.getPath();
-                        prevcity = rout.get(1);
-                        cost = distance[0][prevcity];
+                        int prevcity = rout.get(1);
+                        double cost = distance[0][prevcity];
                         IloColumn column = cplex.column(lpmatrix[rout.get(1) - 1], 1.0);
-                        for (i = 2; i < rout.size() - 1; i++) {
-                            city = rout.get(i);
+                        for (int i = 2; i < rout.size() - 1; i++) {
+                            int city = rout.get(i);
                             cost += distance[prevcity][city];
                             prevcity = city;
                             column = column.and(cplex.column(lpmatrix[rout.get(i) - 1], 1.0));
@@ -197,10 +194,11 @@ public class ColumnGenerate {
                 }
             }
 
-            for (i = 0; i < y.getSize(); i++)
+            for (int i = 0; i < y.getSize(); i++)
                 routes.get(i).setQuantity(cplex.getValue(y.getElement(i)));
-            obj = cplex.getObjValue(); //To be entirely safe, we should recompute the obj using the distBase matrix instead of the dist matrix
+            double obj = cplex.getObjValue(); //To be entirely safe, we should recompute the obj using the distBase matrix instead of the dist matrix
 
+            cplex.endModel();
             cplex.end();
             return obj;
         } catch (IloException e) {

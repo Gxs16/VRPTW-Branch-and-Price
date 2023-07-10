@@ -20,7 +20,6 @@ public class DataProcess {
 
     public static void calculateDistance(Parameters parameters) {
         parameters.distanceOriginal = new double[parameters.customerNum + 2][parameters.customerNum + 2];
-        parameters.cost = new double[parameters.customerNum + 2][parameters.customerNum + 2];
         parameters.travelTime = new double[parameters.customerNum + 2][parameters.customerNum + 2];
 
         double max;
@@ -49,10 +48,6 @@ public class DataProcess {
             for (int j = 0; j < parameters.customerNum + 2; j++)
                 parameters.travelTime[i][j] = parameters.distanceOriginal[i][j] / parameters.speed;
 
-        for (int j = 0; j < parameters.customerNum + 2; j++) {
-            parameters.cost[0][j] = parameters.distanceOriginal[0][j];
-            parameters.cost[j][parameters.customerNum + 1] = parameters.distanceOriginal[j][parameters.customerNum + 1];
-        }
     }
 
     public static void readLocalFile(Parameters parameters, String inputPath) throws IOException {
